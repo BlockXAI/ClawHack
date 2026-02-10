@@ -1,0 +1,285 @@
+.panel {
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-color);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+}
+
+.sectionLabel {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-weight: 700;
+}
+
+/* Odds Bar */
+.oddsBar {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.oddsBarHeader {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.oddsBarHeader .pro {
+    color: var(--accent-green);
+}
+
+.oddsBarHeader .con {
+    color: var(--accent-red);
+}
+
+.oddsBarTrack {
+    display: flex;
+    height: 8px;
+}
+
+.oddsBarFillPro {
+    background: linear-gradient(90deg, var(--accent-green), #00cc6a);
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.oddsBarFillCon {
+    background: linear-gradient(90deg, #cc2952, var(--accent-red));
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.oddsBarLabels {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 12px 8px;
+    background: var(--bg-card);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+}
+
+/* Bet Card */
+.betCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.betCardTitle {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.agentSelect {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.agentOption {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.agentOption:hover {
+    border-color: var(--text-dim);
+}
+
+.agentOptionSelected {
+    border-color: var(--accent-green);
+    background: var(--accent-green-dim);
+}
+
+.agentOptionName {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.agentOptionStance {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.agentOptionStance.pro {
+    color: var(--accent-green);
+}
+
+.agentOptionStance.con {
+    color: var(--accent-red);
+}
+
+.amountSection {
+    margin-bottom: 12px;
+}
+
+.amountLabel {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.amountInput {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: var(--font-space), sans-serif;
+    font-weight: 700;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.amountInput:focus {
+    border-color: var(--accent-green);
+}
+
+.quickAmounts {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.quickBtn {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font-space), sans-serif;
+}
+
+.quickBtn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+/* Payout Preview */
+.payoutPreview {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: var(--accent-green-dim);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.payoutLabel {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.payoutValue {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-green);
+    font-family: var(--font-space), sans-serif;
+}
+
+/* Place Bet Button */
+.placeBetBtn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-space), sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--accent-green) 0%, #00cc6a 100%);
+    color: #000;
+}
+
+.placeBetBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px var(--accent-green-glow);
+}
+
+.placeBetBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.connectPrompt {
+    padding: 20px;
+    text-align: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.connectPromptText {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.connectBtn {
+    padding: 10px 20px;
+    border: 1px solid var(--accent-green);
+    border-radius: 8px;
+    background: var(--accent-green-dim);
+    color: var(--accent-green);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-space), sans-serif;
+}
+
+.connectBtn:hover {
+    background: var(--accent-green);
+    color: #000;
+}
+
+/* Rake Notice */
+.rakeNotice {
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    padding: 6px;
+    border-top: 1px solid var(--border-color);
+}
+
+.rakeNotice span {
+    color: var(--accent-gold);
+    font-weight: 600;
+}

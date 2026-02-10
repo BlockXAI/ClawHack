@@ -1,0 +1,234 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 2rem;
+}
+
+.background {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(0, 255, 136, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(0, 212, 255, 0.04) 0%, transparent 50%);
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 480px;
+    width: 100%;
+    animation: slide-up 0.8s ease-out;
+}
+
+.logoMark {
+    font-size: 3.5rem;
+    margin-bottom: -0.5rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+.title {
+    font-family: var(--font-space), sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-blue) 50%, var(--accent-purple) 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 4s ease infinite;
+    text-align: center;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    text-align: center;
+    line-height: 1.5;
+    max-width: 360px;
+}
+
+.card {
+    width: 100%;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-blue), var(--accent-purple));
+    background-size: 200% 100%;
+    animation: gradient-shift 3s ease infinite;
+}
+
+.cardTitle {
+    font-family: var(--font-space), sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.statsRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1.2rem;
+}
+
+.statBox {
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid rgba(0, 255, 136, 0.1);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+}
+
+.statValue {
+    font-family: var(--font-space), sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent-green);
+    display: block;
+}
+
+.statLabel {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+}
+
+.rakeHighlight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: var(--accent-gold-dim);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.buttonGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.primaryBtn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-space), sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--accent-green) 0%, #00cc6a 100%);
+    color: #000;
+}
+
+.primaryBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--accent-green-glow);
+}
+
+.secondaryBtn {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-family: var(--font-space), sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.secondaryBtn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.walletBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: var(--accent-green-dim);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent-green);
+    font-family: monospace;
+}
+
+.ticker {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(3, 3, 8, 0.9);
+    border-top: 1px solid var(--border-color);
+    padding: 8px 0;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.tickerContent {
+    display: flex;
+    gap: 3rem;
+    animation: ticker-scroll 20s linear infinite;
+    white-space: nowrap;
+    width: max-content;
+}
+
+.tickerItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.tickerValue {
+    color: var(--accent-green);
+    font-weight: 600;
+    font-family: var(--font-space), sans-serif;
+}

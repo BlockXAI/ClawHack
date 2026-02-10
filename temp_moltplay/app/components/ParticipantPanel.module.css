@@ -1,0 +1,165 @@
+.panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    height: 100%;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--color-accent);
+    /* Dynamic based on prop */
+    box-shadow: 0 0 10px var(--color-accent);
+}
+
+.header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.avatar {
+    width: 120px;
+    height: 120px;
+    background: #111;
+    border: 1px solid var(--color-accent);
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-space);
+    font-size: 3rem;
+    color: var(--color-accent);
+    position: relative;
+}
+
+.avatar::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border-bottom: 2px solid var(--color-accent);
+    border-right: 2px solid var(--color-accent);
+}
+
+.name {
+    font-family: var(--font-space);
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    color: #fff;
+    letter-spacing: 0.1em;
+}
+
+.role {
+    color: var(--color-accent);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-top: 0.5rem;
+}
+
+/* Stats Grid */
+.stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.statRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: var(--font-space);
+    font-size: 0.875rem;
+}
+
+.statLabel {
+    color: var(--text-dim);
+    text-transform: uppercase;
+}
+
+.statValue {
+    color: #fff;
+    font-weight: bold;
+}
+
+.progressBar {
+    width: 100%;
+    height: 4px;
+    background: #222;
+    margin-top: 0.5rem;
+    position: relative;
+}
+
+.progressFill {
+    height: 100%;
+    background: var(--color-accent);
+    box-shadow: 0 0 10px var(--color-accent);
+}
+
+/* CPU Load Animation */
+.cpuLoad {
+    margin-top: auto;
+    border: 1px solid #333;
+    padding: 1rem;
+    background: #080808;
+}
+
+.cpuLabel {
+    font-size: 0.75rem;
+    color: var(--accent-red);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    font-family: var(--font-space);
+}
+
+.cpuBar {
+    height: 6px;
+    background: #222;
+    overflow: hidden;
+}
+
+.cpuFill {
+    height: 100%;
+    background: var(--accent-red);
+    width: 45%;
+    animation: cpu-jitters 2s infinite steps(10);
+}
+
+@keyframes cpu-jitters {
+    0% {
+        width: 45%;
+    }
+
+    20% {
+        width: 60%;
+    }
+
+    40% {
+        width: 40%;
+    }
+
+    60% {
+        width: 80%;
+    }
+
+    80% {
+        width: 55%;
+    }
+
+    100% {
+        width: 45%;
+    }
+}

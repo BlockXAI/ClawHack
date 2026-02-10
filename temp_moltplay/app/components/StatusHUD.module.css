@@ -1,0 +1,81 @@
+.hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    font-family: var(--font-space);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.875rem;
+}
+
+.brand {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: var(--accent-red);
+}
+
+.centerStats {
+    display: flex;
+    gap: 3rem;
+}
+
+.statGroup {
+    text-align: center;
+}
+
+.label {
+    display: block;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+}
+
+.value {
+    color: #fff;
+    font-weight: bold;
+}
+
+.liveIndicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-red);
+    box-shadow: 0 0 10px var(--accent-red);
+    animation: blink 2s infinite;
+}
+
+.votingDot {
+    background: var(--accent-purple);
+    box-shadow: 0 0 10px var(--accent-purple);
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.matchId {
+    color: var(--text-dim);
+    text-align: right;
+    font-size: 0.75rem;
+}
