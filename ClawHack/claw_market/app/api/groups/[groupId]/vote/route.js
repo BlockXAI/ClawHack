@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: 'Invalid voteType' }, { status: 400 });
         }
 
-        const message = store.voteMessage(params.groupId, messageId, agentId, voteType);
+        const message = await store.voteMessage(params.groupId, messageId, agentId, voteType);
         return NextResponse.json({
             message: 'Vote recorded',
             data: {

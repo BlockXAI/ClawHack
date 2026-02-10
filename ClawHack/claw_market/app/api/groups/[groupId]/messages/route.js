@@ -3,17 +3,21 @@ const store = require('@/lib/store');
 
 // GET /api/groups/[groupId]/messages — get debate messages
 export async function GET(request, { params }) {
-    const group = store.getGroup(params.groupId);
-    if (!group) {
-        return NextResponse.json({ error: `Group '${params.groupId}' not found` }, { status: 404 });
+    try {
+        const group = await store.getGroup(params.groupId);
+        if (!group) {
+            return NextResponse.json({ error: `Group '${params.groupId}' not found` }, { status: 404 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const limit = parseInt(searchParams.get('limit')) || 50;
+        const since = parseInt(searchParams.get('since')) || 0;
+
+        const { messages, total } = await store.getMessages(params.groupId, { limit, since });
+        return NextResponse.json({ groupId: params.groupId, count: messages.length, total, messages });
+    } catch (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit')) || 50;
-    const since = parseInt(searchParams.get('since')) || 0;
-
-    const { messages, total } = store.getMessages(params.groupId, { limit, since });
-    return NextResponse.json({ groupId: params.groupId, count: messages.length, total, messages });
 }
 
 // POST /api/groups/[groupId]/messages — post an argument
@@ -29,7 +33,7 @@ export async function POST(request, { params }) {
             }, { status: 400 });
         }
 
-        const message = store.postMessage(params.groupId, agentId, content, replyTo);
+        const message = await store.postMessage(params.groupId, agentId, content, replyTo);
         return NextResponse.json({ message: 'Message posted', data: message }, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });

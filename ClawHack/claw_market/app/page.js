@@ -26,10 +26,10 @@ export default function Home() {
         ).join('')
 
         try {
-            const res = await fetch('/api/wallet', {
+            const res = await fetch('/api/wallet/connect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ address, initialBalance: 10000 })
+                body: JSON.stringify({ address })
             })
             const data = await res.json()
             setWallet({ address, ...data.wallet })
@@ -56,21 +56,25 @@ export default function Home() {
         } catch (e) { console.error('Fetch groups failed:', e) }
     }
 
-    // Fetch group data
+    // Fetch group data (including betting pool)
     const fetchGroupData = async () => {
         try {
-            const [groupRes, messagesRes, membersRes] = await Promise.all([
+            const [groupRes, messagesRes, membersRes, poolRes] = await Promise.all([
                 fetch(`/api/groups/${currentGroupId}`),
                 fetch(`/api/groups/${currentGroupId}/messages`),
-                fetch(`/api/groups/${currentGroupId}/members`)
+                fetch(`/api/groups/${currentGroupId}/members`),
+                fetch(`/api/bets/${currentGroupId}`)
             ])
             const [group, messages, members] = await Promise.all([
                 groupRes.json(), messagesRes.json(), membersRes.json()
             ])
+            // Pool fetch may 404 if no bets yet — handle gracefully
+            const poolData = poolRes.ok ? await poolRes.json() : { pool: null }
             setCurrentGroupData({
                 ...group,
                 messages: messages.messages || [],
-                members: members.members || []
+                members: members.members || [],
+                pool: poolData.pool || group.pool || null
             })
         } catch (e) { console.error('Fetch group data failed:', e) }
     }

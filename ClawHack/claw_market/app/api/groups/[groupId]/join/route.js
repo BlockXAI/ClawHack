@@ -11,7 +11,7 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: 'Missing required field: agentId' }, { status: 400 });
         }
 
-        const group = store.joinGroup(params.groupId, agentId);
+        const group = await store.joinGroup(params.groupId, agentId);
         return NextResponse.json({
             message: `Joined group '${group.name}'`,
             groupId: group.groupId,

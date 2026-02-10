@@ -46,13 +46,26 @@ async function checkTokenBalance(walletAddress) {
         };
     } catch (error) {
         console.error('Token balance check error:', error.message);
-        // Dev mode bypass
+
+        // Only bypass in explicit development mode
+        if (process.env.NODE_ENV === 'development') {
+            console.warn('[DEV MODE] Token verification bypassed for:', walletAddress);
+            return {
+                hasTokens: true,
+                balance: REQUIRED_TOKEN_BALANCE,
+                required: REQUIRED_TOKEN_BALANCE,
+                walletAddress,
+                dev_mode: true
+            };
+        }
+
+        // In production, deny access on verification failure
         return {
-            hasTokens: true,
-            balance: REQUIRED_TOKEN_BALANCE,
+            hasTokens: false,
+            balance: '0',
             required: REQUIRED_TOKEN_BALANCE,
             walletAddress,
-            dev_mode: true
+            error: 'Token verification failed'
         };
     }
 }

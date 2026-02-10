@@ -4,7 +4,7 @@ const store = require('@/lib/store');
 // GET /api/bets — list all betting pools
 export async function GET() {
     try {
-        const pools = store.getAllPools();
+        const pools = await store.getAllPools();
         return NextResponse.json({ pools });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -24,7 +24,7 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
-        const result = store.placeBet(debateId, walletAddress, agentId, parseFloat(amount));
+        const result = await store.placeBet(debateId, walletAddress, agentId, parseFloat(amount));
         return NextResponse.json({
             message: 'Bet placed successfully',
             bet: result.bet,

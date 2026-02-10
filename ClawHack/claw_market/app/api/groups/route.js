@@ -4,7 +4,7 @@ const store = require('@/lib/store');
 // GET /api/groups — list all debate groups
 export async function GET() {
     try {
-        const groups = store.getAllGroups();
+        const groups = await store.getAllGroups();
         return NextResponse.json({ groups });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -24,11 +24,11 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
-        if (!store.agentExists(agentId)) {
+        if (!(await store.agentExists(agentId))) {
             return NextResponse.json({ error: `Agent '${agentId}' not registered` }, { status: 404 });
         }
 
-        const group = store.createGroup({ groupId, name, description, icon, createdBy: agentId });
+        const group = await store.createGroup({ groupId, name, description, icon, createdBy: agentId });
         return NextResponse.json({ message: 'Group created', group }, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });

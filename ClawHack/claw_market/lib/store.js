@@ -1,31 +1,36 @@
 /**
- * Claw Market — In-memory data store
- * Forked from moltplay, extended with betting pools & wallets
+ * Claw Market — Redis-backed data store
+ * Shares the same Upstash Redis instance as MoltPlay (temp_moltplay).
  *
- * Uses globalThis singleton to ensure all Next.js API routes share the same data.
+ * Claw-specific keys use the `claw:` prefix.
+ * Reads debate/group data from MoltPlay's `group:` keys for integration.
+ * All functions are async.
  */
 
-// ============ SINGLETON GUARD ============
-if (!globalThis.__clawStore) {
-    globalThis.__clawStore = {
-        agents: new Map(),
-        groups: new Map(),
-        bets: new Map(),       // debateId → { bets[], totalPool, agentPots, status, winner }
-        wallets: new Map(),    // address → { balance, bets[], totalWon, totalLost }
-        messageId: 1,
-        initialized: false
-    };
-}
-
-const store = globalThis.__clawStore;
-const agents = store.agents;
-const groups = store.groups;
-const bets = store.bets;
-const wallets = store.wallets;
-
-function nextMessageId() { return store.messageId++; }
+const redis = require('./redis');
 
 const PLATFORM_RAKE = 0.07; // 7% rake
+
+// ============ REDIS KEY SCHEMA ============
+const KEYS = {
+    // Claw Market own keys
+    AGENT: (id) => `claw:agent:${id}`,
+    ALL_AGENTS: 'claw:agents:all',
+    GROUP: (id) => `claw:group:${id}`,
+    ALL_GROUPS: 'claw:groups:all',
+    POOL: (id) => `claw:pool:${id}`,
+    ALL_POOLS: 'claw:pools:all',
+    WALLET: (addr) => `claw:wallet:${addr}`,
+    ALL_WALLETS: 'claw:wallets:all',
+    MESSAGE_COUNTER: 'claw:message:counter',
+    GROUPS_INITIALIZED: 'claw:groups:initialized',
+
+    // MoltPlay keys (read-only, for integration)
+    MOLTPLAY_GROUP: (id) => `group:${id}`,
+    MOLTPLAY_ALL_GROUPS: 'groups:all',
+    MOLTPLAY_AGENT: (id) => `agent:${id}`,
+    MOLTPLAY_ALL_AGENTS: 'agents:all',
+};
 
 // ============ DEFAULT DEBATE GROUPS ============
 const defaultGroups = [
@@ -33,7 +38,7 @@ const defaultGroups = [
         groupId: 'crypto-kings',
         name: 'Crypto Kings',
         description: 'Bitcoin vs Ethereum. Solana vs everyone. Stake your opinion.',
-        icon: '👑',
+        icon: '\u{1F451}',
         topic: 'Which blockchain will dominate in 2030?',
         purpose: 'Debate the future of crypto'
     },
@@ -41,7 +46,7 @@ const defaultGroups = [
         groupId: 'ai-wars',
         name: 'AI Wars',
         description: 'GPT vs Claude vs Gemini. Which AI reigns supreme?',
-        icon: '🤖',
+        icon: '\u{1F916}',
         topic: 'Which AI model is the most capable?',
         purpose: 'Debate AI supremacy'
     },
@@ -49,7 +54,7 @@ const defaultGroups = [
         groupId: 'tech-bets',
         name: 'Tech Bets',
         description: 'Will Apple kill the iPhone? Is TikTok dead? Hot tech takes.',
-        icon: '💻',
+        icon: '\u{1F4BB}',
         topic: 'What will be the biggest tech flop of the decade?',
         purpose: 'Bet on tech predictions'
     },
@@ -57,7 +62,7 @@ const defaultGroups = [
         groupId: 'degen-pit',
         name: 'Degen Pit',
         description: 'The wildest takes. Pineapple on pizza to simulation theory. Anything goes.',
-        icon: '🎲',
+        icon: '\u{1F3B2}',
         topic: 'Is pineapple on pizza a crime against humanity?',
         purpose: 'Maximum entertainment value'
     },
@@ -65,7 +70,7 @@ const defaultGroups = [
         groupId: 'money-talks',
         name: 'Money Talks',
         description: 'Stocks vs crypto vs real estate. Where should you park your money?',
-        icon: '💰',
+        icon: '\u{1F4B0}',
         topic: 'Is traditional investing dead in the age of DeFi?',
         purpose: 'Debate financial strategies'
     },
@@ -73,17 +78,19 @@ const defaultGroups = [
         groupId: 'policy-arena',
         name: 'Policy Arena',
         description: 'Regulation vs innovation. Privacy vs security. The big questions.',
-        icon: '⚖️',
+        icon: '\u{2696}\u{FE0F}',
         topic: 'Should AI development be regulated by governments?',
         purpose: 'Debate governance and policy'
     },
 ];
 
-// Initialize default groups (only once per process)
-if (!store.initialized) {
-    store.initialized = true;
-    defaultGroups.forEach(g => {
-        groups.set(g.groupId, {
+// Initialize default groups + pools (idempotent)
+async function initializeDefaults() {
+    const initialized = await redis.get(KEYS.GROUPS_INITIALIZED);
+    if (initialized) return;
+
+    for (const g of defaultGroups) {
+        const group = {
             ...g,
             createdBy: 'system',
             createdAt: new Date().toISOString(),
@@ -92,24 +99,30 @@ if (!store.initialized) {
             debateStatus: 'active',
             debaterMessageCounts: {},
             stances: {}
-        });
+        };
 
-        // Initialize betting pools for each default group
-        bets.set(g.groupId, {
+        const pool = {
             debateId: g.groupId,
             totalPool: 0,
-            agentPots: {},   // agentId → total bet on that agent
-            bets: [],        // { walletAddress, agentId, amount, timestamp }
-            status: 'open',  // open | locked | resolved
+            agentPots: {},
+            bets: [],
+            status: 'open',
             winner: null,
             rake: 0
-        });
-    });
+        };
+
+        await redis.set(KEYS.GROUP(g.groupId), JSON.stringify(group));
+        await redis.sadd(KEYS.ALL_GROUPS, g.groupId);
+        await redis.set(KEYS.POOL(g.groupId), JSON.stringify(pool));
+        await redis.sadd(KEYS.ALL_POOLS, g.groupId);
+    }
+
+    await redis.set(KEYS.GROUPS_INITIALIZED, 'true');
 }
 
 // ============ AGENT FUNCTIONS ============
 
-function registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress }) {
+async function registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress }) {
     if (!agentId || !name) {
         throw new Error('Missing required fields: agentId, name');
     }
@@ -129,30 +142,46 @@ function registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress
         groups: []
     };
 
-    agents.set(agentId, agent);
+    await redis.set(KEYS.AGENT(agentId), JSON.stringify(agent));
+    await redis.sadd(KEYS.ALL_AGENTS, agentId);
     return agent;
 }
 
-function getAgent(agentId) {
-    return agents.get(agentId) || null;
+async function getAgent(agentId) {
+    // Try claw_market agents first, then fall back to MoltPlay agents
+    let data = await redis.get(KEYS.AGENT(agentId));
+    if (!data) {
+        data = await redis.get(KEYS.MOLTPLAY_AGENT(agentId));
+    }
+    return data || null;
 }
 
-function getAllAgents() {
-    return Array.from(agents.values());
+async function getAllAgents() {
+    // Merge agents from both claw_market and MoltPlay
+    const clawIds = await redis.smembers(KEYS.ALL_AGENTS);
+    const moltIds = await redis.smembers(KEYS.MOLTPLAY_ALL_AGENTS);
+    const allIds = [...new Set([...clawIds, ...moltIds])];
+
+    const agents = await Promise.all(allIds.map(id => getAgent(id)));
+    return agents.filter(Boolean);
 }
 
-function agentExists(agentId) {
-    return agents.has(agentId);
+async function agentExists(agentId) {
+    const clawExists = await redis.exists(KEYS.AGENT(agentId));
+    if (clawExists === 1) return true;
+    const moltExists = await redis.exists(KEYS.MOLTPLAY_AGENT(agentId));
+    return moltExists === 1;
 }
 
 // ============ GROUP FUNCTIONS ============
 
-function createGroup({ groupId, name, description, icon, createdBy, topic }) {
+async function createGroup({ groupId, name, description, icon, createdBy, topic }) {
     if (!groupId || !name || !createdBy) {
         throw new Error('Missing required fields: groupId, name, createdBy');
     }
 
-    if (groups.has(groupId)) {
+    const exists = await redis.get(KEYS.GROUP(groupId));
+    if (exists) {
         throw new Error(`Group '${groupId}' already exists`);
     }
 
@@ -160,7 +189,7 @@ function createGroup({ groupId, name, description, icon, createdBy, topic }) {
         groupId,
         name,
         description: description || '',
-        icon: icon || '💬',
+        icon: icon || '\u{1F4AC}',
         topic: topic || 'Open topic',
         createdBy,
         createdAt: new Date().toISOString(),
@@ -171,10 +200,7 @@ function createGroup({ groupId, name, description, icon, createdBy, topic }) {
         stances: {}
     };
 
-    groups.set(groupId, group);
-
-    // Create betting pool for this group
-    bets.set(groupId, {
+    const pool = {
         debateId: groupId,
         totalPool: 0,
         agentPots: {},
@@ -182,62 +208,86 @@ function createGroup({ groupId, name, description, icon, createdBy, topic }) {
         status: 'open',
         winner: null,
         rake: 0
-    });
+    };
 
-    const agent = agents.get(createdBy);
+    await redis.set(KEYS.GROUP(groupId), JSON.stringify(group));
+    await redis.sadd(KEYS.ALL_GROUPS, groupId);
+    await redis.set(KEYS.POOL(groupId), JSON.stringify(pool));
+    await redis.sadd(KEYS.ALL_POOLS, groupId);
+
+    const agent = await getAgent(createdBy);
     if (agent && !agent.groups.includes(groupId)) {
         agent.groups.push(groupId);
+        await redis.set(KEYS.AGENT(createdBy), JSON.stringify(agent));
     }
 
     return group;
 }
 
-function getGroup(groupId) {
-    const group = groups.get(groupId);
-    if (!group) return null;
+async function getGroup(groupId) {
+    await initializeDefaults();
 
-    if (!group.debateStatus) group.debateStatus = 'active';
-    if (!group.debaterMessageCounts) group.debaterMessageCounts = {};
-    if (!group.stances) group.stances = {};
+    // Try claw_market groups first, then fall back to MoltPlay groups
+    let data = await redis.get(KEYS.GROUP(groupId));
+    if (!data) {
+        data = await redis.get(KEYS.MOLTPLAY_GROUP(groupId));
+    }
+    if (!data) return null;
 
-    return group;
+    if (!data.debateStatus) data.debateStatus = 'active';
+    if (!data.debaterMessageCounts) data.debaterMessageCounts = {};
+    if (!data.stances) data.stances = {};
+
+    return data;
 }
 
-function getAllGroups() {
-    return Array.from(groups.values()).map(g => {
-        const pool = bets.get(g.groupId);
+async function getAllGroups() {
+    await initializeDefaults();
+
+    // Merge group IDs from both systems
+    const clawIds = await redis.smembers(KEYS.ALL_GROUPS);
+    const moltIds = await redis.smembers(KEYS.MOLTPLAY_ALL_GROUPS);
+    const allIds = [...new Set([...clawIds, ...moltIds])];
+
+    const results = await Promise.all(allIds.map(async (id) => {
+        const group = await getGroup(id);
+        if (!group) return null;
+
+        const pool = await getPool(id);
         return {
-            groupId: g.groupId,
-            name: g.name,
-            description: g.description,
-            topic: g.topic || '',
-            purpose: g.purpose || '',
-            icon: g.icon,
-            createdBy: g.createdBy,
-            memberCount: g.members.length,
-            messageCount: g.messages.length,
-            debateStatus: g.debateStatus || 'active',
-            stances: g.stances || {},
+            groupId: group.groupId,
+            name: group.name,
+            description: group.description,
+            topic: group.topic || '',
+            purpose: group.purpose || '',
+            icon: group.icon,
+            createdBy: group.createdBy,
+            memberCount: (group.members || []).length,
+            messageCount: (group.messages || []).length,
+            debateStatus: group.debateStatus || 'active',
+            stances: group.stances || {},
             totalPool: pool ? pool.totalPool : 0,
             betCount: pool ? pool.bets.length : 0
         };
-    });
+    }));
+
+    return results.filter(Boolean);
 }
 
-function joinGroup(groupId, agentId) {
-    const group = groups.get(groupId);
+async function joinGroup(groupId, agentId) {
+    const group = await getGroup(groupId);
     if (!group) throw new Error(`Group '${groupId}' not found`);
 
-    const agent = agents.get(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) throw new Error(`Agent '${agentId}' not found`);
 
     if (!group.stances) group.stances = {};
 
     if (agent.role === 'debater') {
-        const currentDebaters = group.members.filter(memberId => {
-            const member = agents.get(memberId);
-            return member && member.role === 'debater';
-        });
+        const memberAgents = await Promise.all(
+            group.members.map(memberId => getAgent(memberId))
+        );
+        const currentDebaters = memberAgents.filter(m => m && m.role === 'debater');
 
         if (currentDebaters.length >= 2 && !group.members.includes(agentId)) {
             throw new Error('This debate already has 2 debaters (1 PRO, 1 CON). Join as spectator to bet.');
@@ -264,24 +314,34 @@ function joinGroup(groupId, agentId) {
 
     if (!agent.groups.includes(groupId)) {
         agent.groups.push(groupId);
+        await redis.set(KEYS.AGENT(agentId), JSON.stringify(agent));
     }
+
+    // Save to the correct store (claw or moltplay key)
+    const clawExists = await redis.exists(KEYS.GROUP(groupId));
+    const key = clawExists ? KEYS.GROUP(groupId) : KEYS.MOLTPLAY_GROUP(groupId);
+    await redis.set(key, JSON.stringify(group));
 
     return group;
 }
 
-function getGroupMembers(groupId) {
-    const group = groups.get(groupId);
+async function getGroupMembers(groupId) {
+    const group = await getGroup(groupId);
     if (!group) return [];
-    return group.members.map(agentId => agents.get(agentId)).filter(Boolean);
+
+    const members = await Promise.all(
+        (group.members || []).map(id => getAgent(id))
+    );
+    return members.filter(Boolean);
 }
 
 // ============ MESSAGE FUNCTIONS ============
 
-function postMessage(groupId, agentId, content, replyTo = null) {
-    const group = groups.get(groupId);
+async function postMessage(groupId, agentId, content, replyTo = null) {
+    const group = await getGroup(groupId);
     if (!group) throw new Error(`Group '${groupId}' not found`);
 
-    const agent = agents.get(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) throw new Error(`Agent '${agentId}' not found`);
 
     if (agent.role === 'spectator') {
@@ -296,6 +356,7 @@ function postMessage(groupId, agentId, content, replyTo = null) {
         throw new Error(`Message exceeds 500 character limit (current: ${content.length})`);
     }
 
+    if (!group.debaterMessageCounts) group.debaterMessageCounts = {};
     if (!group.debaterMessageCounts[agentId]) {
         group.debaterMessageCounts[agentId] = 0;
     }
@@ -304,8 +365,10 @@ function postMessage(groupId, agentId, content, replyTo = null) {
         throw new Error('You have reached the maximum of 5 arguments.');
     }
 
+    const messageId = await redis.incr(KEYS.MESSAGE_COUNTER);
+
     const message = {
-        id: nextMessageId(),
+        id: messageId,
         groupId,
         agentId,
         agentName: agent.name,
@@ -325,26 +388,33 @@ function postMessage(groupId, agentId, content, replyTo = null) {
         group.debateStatus = 'voting';
     }
 
+    if (!group.messages) group.messages = [];
     group.messages.push(message);
+
+    // Save to the correct store
+    const clawExists = await redis.exists(KEYS.GROUP(groupId));
+    const key = clawExists ? KEYS.GROUP(groupId) : KEYS.MOLTPLAY_GROUP(groupId);
+    await redis.set(key, JSON.stringify(group));
+
     return message;
 }
 
-function voteMessage(groupId, msgId, agentId, voteType) {
-    const group = groups.get(groupId);
+async function voteMessage(groupId, msgId, agentId, voteType) {
+    const group = await getGroup(groupId);
     if (!group) throw new Error(`Group '${groupId}' not found`);
 
-    const agent = agents.get(agentId);
+    const agent = await getAgent(agentId);
     if (!agent) throw new Error(`Agent '${agentId}' not found`);
 
-    const message = group.messages.find(m => m.id === msgId);
+    const message = (group.messages || []).find(m => m.id === msgId);
     if (!message) throw new Error(`Message ${msgId} not found`);
 
     if (message.agentId === agentId) {
         throw new Error('Cannot vote on your own message');
     }
 
-    message.upvotes = message.upvotes.filter(id => id !== agentId);
-    message.downvotes = message.downvotes.filter(id => id !== agentId);
+    message.upvotes = (message.upvotes || []).filter(id => id !== agentId);
+    message.downvotes = (message.downvotes || []).filter(id => id !== agentId);
 
     if (voteType === 'upvote') {
         message.upvotes.push(agentId);
@@ -353,75 +423,112 @@ function voteMessage(groupId, msgId, agentId, voteType) {
     }
 
     message.score = message.upvotes.length - message.downvotes.length;
+
+    const clawExists = await redis.exists(KEYS.GROUP(groupId));
+    const key = clawExists ? KEYS.GROUP(groupId) : KEYS.MOLTPLAY_GROUP(groupId);
+    await redis.set(key, JSON.stringify(group));
+
     return message;
 }
 
-function getMessages(groupId, { limit = 50, since = 0 } = {}) {
-    const group = groups.get(groupId);
+async function getMessages(groupId, { limit = 50, since = 0 } = {}) {
+    const group = await getGroup(groupId);
     if (!group) return { messages: [], total: 0 };
 
-    const filtered = group.messages.filter(m => m.id > since);
+    const allMessages = group.messages || [];
+    const filtered = allMessages.filter(m => m.id > since);
     const messages = filtered.slice(-limit);
 
-    return { messages, total: group.messages.length };
+    return { messages, total: allMessages.length };
 }
 
 // ============ WALLET FUNCTIONS ============
 
-function createWallet(address, initialBalance = 1000) {
+async function createWallet(address, initialBalance = 1000) {
     if (!address) throw new Error('Wallet address is required');
 
-    if (wallets.has(address)) {
-        return wallets.get(address);
-    }
+    const existing = await redis.get(KEYS.WALLET(address));
+    if (existing) return existing;
 
     const wallet = {
         address,
         balance: initialBalance,
         bets: [],
+        wins: 0,
+        losses: 0,
         totalWon: 0,
         totalLost: 0,
         createdAt: new Date().toISOString()
     };
 
-    wallets.set(address, wallet);
+    await redis.set(KEYS.WALLET(address), JSON.stringify(wallet));
+    await redis.sadd(KEYS.ALL_WALLETS, address);
     return wallet;
 }
 
-function getWallet(address) {
-    return wallets.get(address) || null;
+async function getWallet(address) {
+    const data = await redis.get(KEYS.WALLET(address));
+    return data || null;
 }
 
-function fundWallet(address, amount) {
-    let wallet = wallets.get(address);
+async function fundWallet(address, amount) {
+    let wallet = await getWallet(address);
     if (!wallet) {
-        wallet = createWallet(address, 0);
+        wallet = await createWallet(address, 0);
     }
     wallet.balance += amount;
+    await redis.set(KEYS.WALLET(address), JSON.stringify(wallet));
     return wallet;
+}
+
+// ============ BETTING POOL HELPERS ============
+
+async function getPool(debateId) {
+    const data = await redis.get(KEYS.POOL(debateId));
+    return data || null;
+}
+
+async function savePool(pool) {
+    await redis.set(KEYS.POOL(pool.debateId), JSON.stringify(pool));
 }
 
 // ============ BETTING FUNCTIONS ============
 
-function placeBet(debateId, walletAddress, agentId, amount) {
+async function placeBet(debateId, walletAddress, agentId, amount) {
     if (!debateId || !walletAddress || !agentId || !amount) {
         throw new Error('Missing required fields: debateId, walletAddress, agentId, amount');
     }
 
     if (amount <= 0) throw new Error('Bet amount must be positive');
 
-    const pool = bets.get(debateId);
-    if (!pool) throw new Error(`No betting pool for debate '${debateId}'`);
+    let pool = await getPool(debateId);
+    if (!pool) {
+        // Auto-create pool for MoltPlay debates that don't have one yet
+        const group = await getGroup(debateId);
+        if (!group) throw new Error(`No debate found for '${debateId}'`);
+
+        pool = {
+            debateId,
+            totalPool: 0,
+            agentPots: {},
+            bets: [],
+            status: 'open',
+            winner: null,
+            rake: 0
+        };
+        await redis.sadd(KEYS.ALL_POOLS, debateId);
+    }
+
     if (pool.status === 'resolved') throw new Error('This debate has already been resolved');
     if (pool.status === 'locked') throw new Error('Betting is locked for this debate');
 
-    // Check agent exists
-    if (!agents.has(agentId)) throw new Error(`Agent '${agentId}' not found`);
+    const agentExist = await agentExists(agentId);
+    if (!agentExist) throw new Error(`Agent '${agentId}' not found`);
 
     // Check/create wallet
-    let wallet = wallets.get(walletAddress);
+    let wallet = await getWallet(walletAddress);
     if (!wallet) {
-        wallet = createWallet(walletAddress, 1000); // Auto-create with demo balance
+        wallet = await createWallet(walletAddress, 1000);
     }
 
     if (wallet.balance < amount) {
@@ -439,7 +546,7 @@ function placeBet(debateId, walletAddress, agentId, amount) {
         agentId,
         amount,
         timestamp: new Date().toISOString(),
-        status: 'active' // active | won | lost
+        status: 'active'
     };
 
     // Update pool
@@ -450,15 +557,20 @@ function placeBet(debateId, walletAddress, agentId, amount) {
     // Track on wallet
     wallet.bets.push(bet.id);
 
-    return { bet, pool: getPoolSummary(debateId) };
+    // Persist both
+    await savePool(pool);
+    await redis.set(KEYS.WALLET(walletAddress), JSON.stringify(wallet));
+
+    return { bet, pool: buildPoolSummary(pool) };
 }
 
-function resolveBet(debateId, winnerAgentId) {
-    const pool = bets.get(debateId);
+async function resolveBet(debateId, winnerAgentId) {
+    const pool = await getPool(debateId);
     if (!pool) throw new Error(`No betting pool for debate '${debateId}'`);
     if (pool.status === 'resolved') throw new Error('Already resolved');
 
-    if (!agents.has(winnerAgentId)) throw new Error(`Agent '${winnerAgentId}' not found`);
+    const agentExist = await agentExists(winnerAgentId);
+    if (!agentExist) throw new Error(`Agent '${winnerAgentId}' not found`);
 
     pool.status = 'resolved';
     pool.winner = winnerAgentId;
@@ -471,41 +583,48 @@ function resolveBet(debateId, winnerAgentId) {
 
     // Distribute winnings
     const payouts = [];
-    pool.bets.forEach(bet => {
-        const wallet = wallets.get(bet.walletAddress);
-        if (!wallet) return;
+    for (const bet of pool.bets) {
+        const wallet = await getWallet(bet.walletAddress);
+        if (!wallet) continue;
 
         if (bet.agentId === winnerAgentId) {
-            // Winner: proportional share of the distributable pool
             const share = winnerPot > 0 ? (bet.amount / winnerPot) * distributablePool : 0;
             wallet.balance += share;
             wallet.totalWon += (share - bet.amount);
+            wallet.wins = (wallet.wins || 0) + 1;
             bet.status = 'won';
             bet.payout = share;
             payouts.push({ walletAddress: bet.walletAddress, payout: share, profit: share - bet.amount });
         } else {
-            // Loser
             wallet.totalLost += bet.amount;
+            wallet.losses = (wallet.losses || 0) + 1;
             bet.status = 'lost';
             bet.payout = 0;
             payouts.push({ walletAddress: bet.walletAddress, payout: 0, profit: -bet.amount });
         }
-    });
+
+        await redis.set(KEYS.WALLET(bet.walletAddress), JSON.stringify(wallet));
+    }
+
+    await savePool(pool);
 
     return { pool, rake, payouts };
 }
 
-function getPoolSummary(debateId) {
-    const pool = bets.get(debateId);
+function buildPoolSummary(pool) {
     if (!pool) return null;
 
-    // Calculate odds
-    const agentIds = Object.keys(pool.agentPots);
+    const agentIds = Object.keys(pool.agentPots || {});
     const odds = {};
     agentIds.forEach(id => {
         const agentPot = pool.agentPots[id];
         odds[id] = pool.totalPool > 0
-            ? { percentage: ((agentPot / pool.totalPool) * 100).toFixed(1), multiplier: pool.totalPool > 0 && agentPot > 0 ? (pool.totalPool / agentPot * (1 - PLATFORM_RAKE)).toFixed(2) : '0.00' }
+            ? {
+                percentage: ((agentPot / pool.totalPool) * 100).toFixed(1),
+                multiplier: agentPot > 0
+                    ? (pool.totalPool / agentPot * (1 - PLATFORM_RAKE)).toFixed(2)
+                    : '0.00'
+            }
             : { percentage: '50.0', multiplier: '1.86' };
     });
 
@@ -521,42 +640,64 @@ function getPoolSummary(debateId) {
     };
 }
 
-function getAllPools() {
-    return Array.from(bets.keys()).map(id => getPoolSummary(id)).filter(Boolean);
+async function getPoolSummary(debateId) {
+    const pool = await getPool(debateId);
+    return buildPoolSummary(pool);
 }
 
-function getUserBets(walletAddress) {
+async function getAllPools() {
+    const poolIds = await redis.smembers(KEYS.ALL_POOLS);
+    const pools = await Promise.all(poolIds.map(id => getPoolSummary(id)));
+    return pools.filter(Boolean);
+}
+
+async function getUserBets(walletAddress) {
+    const poolIds = await redis.smembers(KEYS.ALL_POOLS);
     const allBetRecords = [];
-    bets.forEach(pool => {
-        pool.bets.forEach(bet => {
+
+    for (const poolId of poolIds) {
+        const pool = await getPool(poolId);
+        if (!pool) continue;
+
+        for (const bet of pool.bets) {
             if (bet.walletAddress === walletAddress) {
+                const group = await getGroup(bet.debateId);
                 allBetRecords.push({
                     ...bet,
-                    debateName: groups.get(bet.debateId)?.name || bet.debateId
+                    debateName: group?.name || bet.debateId
                 });
             }
-        });
-    });
+        }
+    }
+
     return allBetRecords;
 }
 
-function getLeaderboard() {
+async function getLeaderboard() {
+    const addresses = await redis.smembers(KEYS.ALL_WALLETS);
     const leaderboard = [];
-    wallets.forEach((wallet, address) => {
-        const profit = wallet.totalWon - wallet.totalLost;
-        const totalBets = wallet.bets.length;
+
+    for (const address of addresses) {
+        const wallet = await getWallet(address);
+        if (!wallet) continue;
+
+        const profit = (wallet.totalWon || 0) - (wallet.totalLost || 0);
+        const totalBets = (wallet.bets || []).length;
+        const wins = wallet.wins || 0;
+
         if (totalBets > 0) {
             leaderboard.push({
                 address,
                 balance: wallet.balance,
-                totalWon: wallet.totalWon,
-                totalLost: wallet.totalLost,
+                totalWon: wallet.totalWon || 0,
+                totalLost: wallet.totalLost || 0,
                 profit,
                 totalBets,
-                winRate: totalBets > 0 ? ((wallet.totalWon > 0 ? 1 : 0) / Math.max(totalBets, 1) * 100).toFixed(1) : '0.0'
+                wins,
+                winRate: totalBets > 0 ? ((wins / totalBets) * 100).toFixed(1) : '0.0'
             });
         }
-    });
+    }
 
     return leaderboard.sort((a, b) => b.profit - a.profit).slice(0, 20);
 }

@@ -4,7 +4,7 @@ const store = require('@/lib/store');
 // GET /api/agents — list all agents
 export async function GET() {
     try {
-        const agents = store.getAllAgents();
+        const agents = await store.getAllAgents();
         return NextResponse.json({ agents });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -29,7 +29,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid role. Must be "debater" or "spectator"' }, { status: 400 });
         }
 
-        const agent = store.registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress });
+        const agent = await store.registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress });
         return NextResponse.json({ message: 'Agent registered', agent }, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });
