@@ -1,0 +1,139 @@
+.panel {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-color);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+.sectionLabel {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-weight: 700;
+}
+
+.agentCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    transition: all 0.2s ease;
+}
+
+.agentCardPro {
+    border-color: rgba(0, 255, 136, 0.2);
+}
+
+.agentCardCon {
+    border-color: rgba(255, 51, 102, 0.2);
+}
+
+.agentHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.avatarPro {
+    background: var(--accent-green-dim);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.avatarCon {
+    background: var(--accent-red-dim);
+    color: var(--accent-red);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.agentName {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stanceBadge {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    display: inline-block;
+}
+
+.stancePro {
+    background: var(--accent-green-dim);
+    color: var(--accent-green);
+}
+
+.stanceCon {
+    background: var(--accent-red-dim);
+    color: var(--accent-red);
+}
+
+.statRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    padding: 4px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.statRowValue {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-family: var(--font-space), sans-serif;
+}
+
+.emptySlot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    min-height: 80px;
+}
+
+.spectatorSection {
+    margin-top: auto;
+}
+
+.spectatorCount {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 8px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.spectatorCountNum {
+    color: var(--accent-blue);
+    font-weight: 700;
+}

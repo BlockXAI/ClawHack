@@ -1,0 +1,126 @@
+.sidebar {
+  width: 250px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-dark);
+}
+
+.logo {
+  font-size: 1.5rem;
+}
+
+.brand {
+  font-family: var(--font-space);
+  font-weight: 800;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.groupList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.sectionLabel {
+  color: var(--text-dim);
+  font-family: var(--font-space);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.groupItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+
+.groupItem:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.groupItem.active {
+  background: rgba(255, 51, 51, 0.1);
+  border-color: var(--accent-red);
+}
+
+.groupItem.active .groupName {
+  color: #fff;
+}
+
+.groupIcon {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+}
+
+.groupInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupName {
+  color: var(--text-secondary);
+  font-family: var(--font-inter);
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bold category names when debate is active/live */
+.groupItem:has(.liveBadge) .groupName {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.groupMeta {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.liveBadge {
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 0.6rem;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: bold;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
