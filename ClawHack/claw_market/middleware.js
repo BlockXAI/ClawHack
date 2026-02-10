@@ -3,12 +3,16 @@ import { NextResponse } from 'next/server';
 export function middleware(request) {
     const origin = request.headers.get('origin') || '';
 
-    // Allow requests from Vercel frontend and localhost
+    // Allow requests from Vercel deployments, localhost, and custom origins
     const allowedOrigins = [
-        'https://clawmarket-jet.vercel.app',
         'http://localhost:3000',
         'http://localhost:3001',
     ];
+
+    // Add any custom allowed origin from env (e.g. custom domain)
+    if (process.env.ALLOWED_ORIGIN) {
+        allowedOrigins.push(process.env.ALLOWED_ORIGIN);
+    }
 
     const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
 
