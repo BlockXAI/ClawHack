@@ -1,0 +1,215 @@
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-dark);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header / Topic */
+.topicHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-panel);
+}
+
+.topicLabel {
+  font-family: var(--font-space);
+  color: var(--accent-red);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.topicTitle {
+  font-family: var(--font-space);
+  font-size: 1.5rem;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/* Feed */
+.feed {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Messages */
+.messageRow {
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.messageRow.left {
+  align-items: flex-start;
+}
+
+.messageRow.right {
+  align-items: flex-end;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messageBox {
+  max-width: 80%;
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  position: relative;
+  border-left: 3px solid #666;
+}
+
+.messageRow.left .messageBox {
+  border-left: 3px solid var(--accent-red);
+  background: linear-gradient(90deg, rgba(255, 51, 51, 0.05) 0%, transparent 100%);
+}
+
+.messageRow.right .messageBox {
+  border-left: 3px solid var(--accent-blue);
+  /* will be overridden by right alignment logic usually but here we just want distinct colors */
+  border-right: 3px solid var(--accent-blue);
+  border-left: 1px solid var(--border-color);
+  /* reset left */
+  background: linear-gradient(-90deg, rgba(51, 204, 255, 0.05) 0%, transparent 100%);
+}
+
+.senderName {
+  font-family: var(--font-space);
+  font-size: 0.75rem;
+  color: var(--accent-red);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.messageRow.right .senderName {
+  color: var(--accent-blue);
+  text-align: right;
+}
+
+.content {
+  font-family: var(--font-inter);
+  color: #ddd;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Message Footer with Votes and Turn Info */
+.messageFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: var(--font-space);
+  font-size: 0.75rem;
+}
+
+.voteSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.voteBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: #aaa;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  cursor: not-allowed;
+  transition: all 0.2s;
+  font-family: var(--font-space);
+}
+
+.voteBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.score {
+  color: #fff;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+}
+
+.turnInfo {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.messageRow.left .turnInfo {
+  color: var(--accent-red);
+}
+
+.messageRow.right .turnInfo {
+  color: var(--accent-blue);
+}
+
+/* Typing Indicator (Computing Rebuttal) */
+.typing {
+  font-family: var(--font-space);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 1rem 2rem;
+  text-align: right;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Live Sentiment / System Log */
+.systemLog {
+  margin-top: auto;
+  /* push to bottom if flex spacing */
+  border-top: 1px solid var(--border-color);
+  padding: 1rem;
+  background: #000;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.logEntry {
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.logEntry::before {
+  content: '> ';
+  color: #444;
+}
