@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useAccount, useDisconnect } from 'wagmi'
 import Landing from './components/Landing'
 import Sidebar from './components/Sidebar'
 import ChatArea from './components/ChatArea'
@@ -8,7 +9,6 @@ import BettingPanel from './components/BettingPanel'
 import ParticipantPanel from './components/ParticipantPanel'
 import StatusHUD from './components/StatusHUD'
 import Leaderboard from './components/Leaderboard'
-import WalletButton from './components/WalletButton'
 import styles from './page.module.css'
 
 export default function Home() {
@@ -16,35 +16,62 @@ export default function Home() {
     const [currentGroupId, setCurrentGroupId] = useState('crypto-kings')
     const [currentGroupData, setCurrentGroupData] = useState(null)
     const [groups, setGroups] = useState([])
-    const [wallet, setWallet] = useState(null)
+    const [walletData, setWalletData] = useState(null)
     const [showLeaderboard, setShowLeaderboard] = useState(false)
 
-    // Connect wallet (simulated)
-    const connectWallet = async () => {
-        const address = '0x' + Array.from({ length: 40 }, () =>
-            Math.floor(Math.random() * 16).toString(16)
-        ).join('')
+    const { address, isConnected } = useAccount()
+    const { disconnect } = useDisconnect()
 
+    // Auto-register wallet in backend when connected
+    useEffect(() => {
+        if (isConnected && address) {
+            registerWallet(address)
+        } else {
+            setWalletData(null)
+        }
+    }, [isConnected, address])
+
+    const registerWallet = async (addr) => {
         try {
             const res = await fetch('/api/wallet/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address: addr })
+            })
+            const data = await res.json()
+            setWalletData({ address: addr, ...data.wallet })
+        } catch (e) {
+            console.error('Wallet register failed:', e)
+        }
+    }
+
+    const refreshWallet = useCallback(async () => {
+        if (!address) return
+        try {
+            const res = await fetch(`/api/wallet?address=${address}`)
+            const data = await res.json()
+            if (data.wallet) setWalletData({ address, ...data.wallet })
+        } catch (e) { /* ignore */ }
+    }, [address])
+
+    const handleClaimFaucet = async () => {
+        if (!address) return
+        try {
+            const res = await fetch('/api/wallet/faucet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ address })
             })
             const data = await res.json()
-            setWallet({ address, ...data.wallet })
+            if (res.ok) {
+                setWalletData({ address, ...data.wallet })
+                return { success: true, message: data.message }
+            } else {
+                return { success: false, message: data.error }
+            }
         } catch (e) {
-            console.error('Wallet connect failed:', e)
+            return { success: false, message: e.message }
         }
-    }
-
-    const refreshWallet = async () => {
-        if (!wallet?.address) return
-        try {
-            const res = await fetch(`/api/wallet?address=${wallet.address}`)
-            const data = await res.json()
-            if (data.wallet) setWallet({ address: wallet.address, ...data.wallet })
-        } catch (e) { /* ignore */ }
     }
 
     // Fetch groups
@@ -68,7 +95,6 @@ export default function Home() {
             const [group, messages, members] = await Promise.all([
                 groupRes.json(), messagesRes.json(), membersRes.json()
             ])
-            // Pool fetch may 404 if no bets yet — handle gracefully
             const poolData = poolRes.ok ? await poolRes.json() : { pool: null }
             setCurrentGroupData({
                 ...group,
@@ -98,13 +124,13 @@ export default function Home() {
 
     // Place bet handler
     const handlePlaceBet = async (agentId, amount) => {
-        if (!wallet) return
+        if (!walletData) return
         try {
             const res = await fetch('/api/bets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    walletAddress: wallet.address,
+                    walletAddress: walletData.address,
                     debateId: currentGroupId,
                     agentId,
                     amount
@@ -122,8 +148,17 @@ export default function Home() {
         }
     }
 
+    // Build wallet object for child components
+    const wallet = walletData && isConnected ? walletData : null
+
     if (showLanding) {
-        return <Landing onEnter={() => setShowLanding(false)} onConnect={connectWallet} wallet={wallet} />
+        return (
+            <Landing
+                onEnter={() => setShowLanding(false)}
+                wallet={wallet}
+                onClaimFaucet={handleClaimFaucet}
+            />
+        )
     }
 
     return (
@@ -139,8 +174,8 @@ export default function Home() {
                 <StatusHUD
                     groupData={currentGroupData}
                     wallet={wallet}
-                    onConnect={connectWallet}
-                    onDisconnect={() => setWallet(null)}
+                    onDisconnect={disconnect}
+                    onClaimFaucet={handleClaimFaucet}
                 />
 
                 <div className={styles.arenaGrid}>
@@ -159,7 +194,7 @@ export default function Home() {
                         groupData={currentGroupData}
                         wallet={wallet}
                         onPlaceBet={handlePlaceBet}
-                        onConnect={connectWallet}
+                        onClaimFaucet={handleClaimFaucet}
                     />
                 </div>
             </div>

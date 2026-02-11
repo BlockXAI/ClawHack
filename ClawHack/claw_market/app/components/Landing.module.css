@@ -184,6 +184,18 @@
     color: var(--accent-green);
 }
 
+.walletSection {
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.connectedWallet {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
 .walletBadge {
     display: flex;
     align-items: center;
@@ -193,10 +205,92 @@
     background: var(--accent-green-dim);
     border: 1px solid rgba(0, 255, 136, 0.2);
     border-radius: 8px;
-    margin-bottom: 0.5rem;
     font-size: 0.8rem;
     color: var(--accent-green);
     font-family: monospace;
+    transition: all 0.2s ease;
+}
+
+.walletBadge:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 12px var(--accent-green-glow);
+}
+
+.chainBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--accent-blue-dim);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    color: var(--accent-blue);
+    font-family: var(--font-space), sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chainBtn:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 10px var(--accent-blue-glow);
+}
+
+.faucetSection {
+    margin-bottom: 1rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.faucetBtn {
+    width: 100%;
+    padding: 12px;
+    border: 1px dashed var(--accent-purple);
+    border-radius: 10px;
+    font-family: var(--font-space), sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--accent-purple-dim);
+    color: var(--accent-purple);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.faucetBtn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.faucetBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.faucetMsg {
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    animation: slide-up 0.3s ease-out;
+}
+
+.faucetSuccess {
+    background: var(--accent-green-dim);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    color: var(--accent-green);
+}
+
+.faucetError {
+    background: var(--accent-red-dim);
+    border: 1px solid rgba(255, 51, 102, 0.2);
+    color: var(--accent-red);
 }
 
 .ticker {

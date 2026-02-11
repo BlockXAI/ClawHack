@@ -1,8 +1,25 @@
 'use client'
 
+import { useState } from 'react'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
 import styles from './Landing.module.css'
 
-export default function Landing({ onEnter, onConnect, wallet }) {
+export default function Landing({ onEnter, wallet, onClaimFaucet }) {
+    const { isConnected } = useAccount()
+    const [faucetMsg, setFaucetMsg] = useState(null)
+    const [faucetLoading, setFaucetLoading] = useState(false)
+
+    const handleFaucet = async () => {
+        if (!isConnected || !onClaimFaucet) return
+        setFaucetLoading(true)
+        setFaucetMsg(null)
+        const result = await onClaimFaucet()
+        setFaucetMsg(result)
+        setFaucetLoading(false)
+        setTimeout(() => setFaucetMsg(null), 4000)
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.background}></div>
@@ -38,22 +55,72 @@ export default function Landing({ onEnter, onConnect, wallet }) {
                         ⚡ 7% Platform Rake — The House Always Eats
                     </div>
 
-                    {wallet && (
-                        <div className={styles.walletBadge}>
-                            ✅ {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)} — ${wallet.balance?.toLocaleString()}
+                    {/* Wallet Connection via RainbowKit */}
+                    <div className={styles.walletSection}>
+                        <ConnectButton.Custom>
+                            {({ account, chain, openConnectModal, openAccountModal, openChainModal, mounted }) => {
+                                const connected = mounted && account && chain
+                                return (
+                                    <div
+                                        {...(!mounted && {
+                                            'aria-hidden': true,
+                                            style: { opacity: 0, pointerEvents: 'none', userSelect: 'none' },
+                                        })}
+                                        style={{ width: '100%' }}
+                                    >
+                                        {!connected ? (
+                                            <button className={styles.primaryBtn} onClick={openConnectModal}>
+                                                🔗 Connect Wallet
+                                            </button>
+                                        ) : (
+                                            <div className={styles.connectedWallet}>
+                                                <div className={styles.walletBadge} onClick={openAccountModal} style={{ cursor: 'pointer' }}>
+                                                    ✅ {account.displayName}
+                                                    {wallet?.balance !== undefined && (
+                                                        <span> — ${wallet.balance?.toLocaleString()} CLAW</span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    className={styles.chainBtn}
+                                                    onClick={openChainModal}
+                                                >
+                                                    {chain.hasIcon && chain.iconUrl && (
+                                                        <img src={chain.iconUrl} alt={chain.name} style={{ width: 14, height: 14, borderRadius: 999 }} />
+                                                    )}
+                                                    {chain.name}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            }}
+                        </ConnectButton.Custom>
+                    </div>
+
+                    {/* Faucet Button */}
+                    {isConnected && (
+                        <div className={styles.faucetSection}>
+                            <button
+                                className={styles.faucetBtn}
+                                onClick={handleFaucet}
+                                disabled={faucetLoading}
+                            >
+                                {faucetLoading ? '⏳ Claiming...' : '� Claim $500 Faucet Tokens'}
+                            </button>
+                            {faucetMsg && (
+                                <div className={`${styles.faucetMsg} ${faucetMsg.success ? styles.faucetSuccess : styles.faucetError}`}>
+                                    {faucetMsg.message}
+                                </div>
+                            )}
                         </div>
                     )}
 
                     <div className={styles.buttonGroup}>
-                        {!wallet ? (
-                            <button className={styles.primaryBtn} onClick={onConnect}>
-                                🔗 Connect Wallet
-                            </button>
-                        ) : (
+                        {isConnected ? (
                             <button className={styles.primaryBtn} onClick={onEnter}>
                                 ⚔️ Enter The Arena
                             </button>
-                        )}
+                        ) : null}
                         <button className={styles.secondaryBtn} onClick={onEnter}>
                             👁️ Spectate Without Wallet
                         </button>

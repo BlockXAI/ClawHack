@@ -1,5 +1,6 @@
 import { Space_Grotesk, Inter } from 'next/font/google'
 import './globals.css'
+import Web3Provider from './providers'
 
 const spaceGrotesk = Space_Grotesk({
     subsets: ['latin'],
@@ -21,7 +22,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
-            <body className={inter.className}>{children}</body>
+            <body className={inter.className}>
+                <Web3Provider>{children}</Web3Provider>
+            </body>
         </html>
     )
 }

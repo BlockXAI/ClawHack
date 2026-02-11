@@ -1,11 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
 import styles from './BettingPanel.module.css'
 
-export default function BettingPanel({ groupData, wallet, onPlaceBet, onConnect }) {
+export default function BettingPanel({ groupData, wallet, onPlaceBet, onClaimFaucet }) {
     const [selectedAgent, setSelectedAgent] = useState(null)
     const [betAmount, setBetAmount] = useState('')
+    const { isConnected } = useAccount()
+    const [faucetLoading, setFaucetLoading] = useState(false)
 
     const members = groupData?.members || []
     const stances = groupData?.stances || {}
@@ -38,13 +42,26 @@ export default function BettingPanel({ groupData, wallet, onPlaceBet, onConnect 
         setSelectedAgent(null)
     }
 
+    const handleFaucet = async () => {
+        if (!onClaimFaucet) return
+        setFaucetLoading(true)
+        await onClaimFaucet()
+        setFaucetLoading(false)
+    }
+
     if (!wallet) {
         return (
             <div className={styles.panel}>
                 <div className={styles.sectionLabel}>💰 Place Your Bet</div>
                 <div className={styles.connectPrompt}>
                     <div className={styles.connectPromptText}>Connect wallet to start betting on debates</div>
-                    <button className={styles.connectBtn} onClick={onConnect}>Connect Wallet</button>
+                    <ConnectButton.Custom>
+                        {({ openConnectModal, mounted }) => (
+                            <div {...(!mounted && { 'aria-hidden': true, style: { opacity: 0, pointerEvents: 'none' } })}>
+                                <button className={styles.connectBtn} onClick={openConnectModal}>Connect Wallet</button>
+                            </div>
+                        )}
+                    </ConnectButton.Custom>
                 </div>
             </div>
         )
@@ -127,6 +144,14 @@ export default function BettingPanel({ groupData, wallet, onPlaceBet, onConnect 
                                 ${amt}
                             </button>
                         ))}
+                        <button
+                            className={styles.faucetQuickBtn}
+                            onClick={handleFaucet}
+                            disabled={faucetLoading}
+                            title="Claim $500 faucet tokens"
+                        >
+                            {faucetLoading ? '⏳' : '🚰 +$500'}
+                        </button>
                     </div>
                 </div>
 

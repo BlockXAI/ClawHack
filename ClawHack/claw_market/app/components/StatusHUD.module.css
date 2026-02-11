@@ -119,3 +119,24 @@
     border-color: var(--accent-red);
     color: var(--accent-red);
 }
+
+.faucetBtn {
+    padding: 6px 10px;
+    border: 1px dashed var(--accent-purple);
+    border-radius: 6px;
+    background: var(--accent-purple-dim);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.faucetBtn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.faucetBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

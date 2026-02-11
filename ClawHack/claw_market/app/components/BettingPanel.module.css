@@ -283,3 +283,27 @@
     color: var(--accent-gold);
     font-weight: 600;
 }
+
+.faucetQuickBtn {
+    flex: 1;
+    padding: 6px;
+    border: 1px dashed var(--accent-purple);
+    border-radius: 6px;
+    background: var(--accent-purple-dim);
+    color: var(--accent-purple);
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font-space), sans-serif;
+    font-weight: 700;
+}
+
+.faucetQuickBtn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+}
+
+.faucetQuickBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
