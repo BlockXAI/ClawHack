@@ -1,6 +1,6 @@
 /**
  * Claw Market — Redis-backed data store
- * Shares the same Upstash Redis instance as MoltPlay (temp_moltplay).
+ * Uses Railway Redis (ioredis) for persistence.
  *
  * Claw-specific keys use the `claw:` prefix.
  * Reads debate/group data from MoltPlay's `group:` keys for integration.
