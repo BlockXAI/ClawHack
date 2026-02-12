@@ -1,30 +1,26 @@
 'use client'
-import { useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
+import { useMonBalance, usePoolOnChain } from '../hooks/useEscrow'
 import styles from './StatusHUD.module.css'
 
 export default function StatusHUD({ groupData, wallet, onDisconnect, onClaimFaucet }) {
     const { isConnected } = useAccount()
-    const [faucetLoading, setFaucetLoading] = useState(false)
-    const [faucetMsg, setFaucetMsg] = useState(null)
-
-    const handleFaucet = async () => {
-        if (!onClaimFaucet) return
-        setFaucetLoading(true)
-        const result = await onClaimFaucet()
-        setFaucetMsg(result)
-        setFaucetLoading(false)
-        setTimeout(() => setFaucetMsg(null), 3000)
-    }
+    const { balance, symbol } = useMonBalance()
+    const { pool: onChainPool } = usePoolOnChain(groupData?.groupId)
 
     const pool = groupData?.pool
+    const onChainTotal = onChainPool?.exists ? onChainPool.totalPoolFormatted : null
+
     return (
         <div className={styles.statusBar}>
             <div className={styles.left}>
                 <div className={styles.liveIndicator}>
                     <span className={styles.liveDot}></span>
                     {groupData?.debateStatus === 'voting' ? 'VOTING' : 'LIVE'}
+                    {onChainPool?.exists && (
+                        <span style={{ color: '#00FF88', fontSize: '10px', marginLeft: '6px' }}>⛓ ON-CHAIN</span>
+                    )}
                 </div>
                 <span className={styles.topicText}>
                     {groupData?.topic || 'Select a market...'}
@@ -33,22 +29,13 @@ export default function StatusHUD({ groupData, wallet, onDisconnect, onClaimFauc
 
             <div className={styles.right}>
                 <div className={styles.poolInfo}>
-                    Pool: <span className={styles.poolValue}>${pool?.totalPool?.toLocaleString() || '0'}</span>
+                    Pool: <span className={styles.poolValue}>
+                        {onChainTotal ? `${parseFloat(onChainTotal).toFixed(4)} MON` : `${pool?.totalPool?.toLocaleString() || '0'} MON`}
+                    </span>
                 </div>
                 <div className={styles.poolInfo}>
-                    Bets: <span className={styles.poolValue}>{pool?.betCount || 0}</span>
+                    Bets: <span className={styles.poolValue}>{onChainPool?.betCount || pool?.betCount || 0}</span>
                 </div>
-
-                {isConnected && (
-                    <button
-                        className={styles.faucetBtn}
-                        onClick={handleFaucet}
-                        disabled={faucetLoading}
-                        title={faucetMsg?.message || 'Claim $500 faucet tokens'}
-                    >
-                        {faucetLoading ? '⏳' : '🚰'}
-                    </button>
-                )}
 
                 <div className={styles.walletArea}>
                     <ConnectButton.Custom>
@@ -70,9 +57,9 @@ export default function StatusHUD({ groupData, wallet, onDisconnect, onClaimFauc
                                             <span className={styles.walletAddr} onClick={openAccountModal} style={{ cursor: 'pointer' }}>
                                                 {account.displayName}
                                             </span>
-                                            {wallet?.balance !== undefined && (
-                                                <span className={styles.walletBal}>${wallet.balance?.toLocaleString()}</span>
-                                            )}
+                                            <span className={styles.walletBal}>
+                                                {parseFloat(balance).toFixed(4)} {symbol}
+                                            </span>
                                             <button className={styles.disconnectBtn} onClick={onDisconnect}>✕</button>
                                         </div>
                                     )}
