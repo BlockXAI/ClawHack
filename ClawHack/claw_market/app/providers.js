@@ -34,7 +34,7 @@ const monadTestnet = defineChain({
 const config = getDefaultConfig({
     appName: 'Claw Market',
     projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '246f2774a0218ff3e0a4b09480d01295',
-    chains: [monad, monadTestnet],
+    chains: [monadTestnet, monad],
     ssr: true,
 })
 

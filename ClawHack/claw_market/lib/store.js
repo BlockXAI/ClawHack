@@ -86,10 +86,11 @@ const defaultGroups = [
 
 // Initialize default groups + pools (idempotent)
 async function initializeDefaults() {
-    const initialized = await redis.get(KEYS.GROUPS_INITIALIZED);
-    if (initialized) return;
-
+    // Check per-group existence to avoid overwriting seeded data
     for (const g of defaultGroups) {
+        const exists = await redis.exists(KEYS.GROUP(g.groupId));
+        if (exists) continue; // never overwrite an existing group
+
         const group = {
             ...g,
             createdBy: 'system',
@@ -116,8 +117,6 @@ async function initializeDefaults() {
         await redis.set(KEYS.POOL(g.groupId), JSON.stringify(pool));
         await redis.sadd(KEYS.ALL_POOLS, g.groupId);
     }
-
-    await redis.set(KEYS.GROUPS_INITIALIZED, 'true');
 }
 
 // ============ AGENT FUNCTIONS ============

@@ -1,61 +1,45 @@
 /**
  * Claw Market — Redis client (Railway Redis via ioredis)
  * Wraps ioredis to auto-parse JSON on get() for store.js compatibility.
- * Uses lazyConnect for Vercel serverless compatibility.
  */
 
 const Redis = require('ioredis');
 
 const REDIS_URL = process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL || '';
 
-let client = null;
-
-function getClient() {
-    if (client && client.status === 'ready') return client;
-
-    if (!REDIS_URL) {
-        throw new Error('REDIS_URL environment variable is not set');
-    }
-
-    if (client) {
-        // Reuse existing client if it's still connecting
-        if (client.status === 'connecting' || client.status === 'connect') return client;
-        // Otherwise destroy and recreate
-        try { client.disconnect(); } catch (_) {}
-    }
-
-    client = new Redis(REDIS_URL, {
-        maxRetriesPerRequest: 2,
-        connectTimeout: 10000,
-        commandTimeout: 5000,
-        lazyConnect: true,
-        retryStrategy(times) {
-            if (times > 3) return null; // stop retrying after 3 attempts
-            return Math.min(times * 300, 2000);
-        },
-        tls: REDIS_URL.startsWith('rediss://') ? {} : undefined,
-    });
-
-    client.on('error', (err) => {
-        console.error('[Redis] Connection error:', err.message);
-    });
-
-    return client;
+if (!REDIS_URL) {
+    console.warn('[Redis] REDIS_URL not set — API routes will fail');
 }
 
-async function ensureConnected() {
-    const c = getClient();
-    if (c.status !== 'ready') {
-        await c.connect();
-    }
-    return c;
+const client = REDIS_URL ? new Redis(REDIS_URL, {
+    maxRetriesPerRequest: 3,
+    connectTimeout: 15000,
+    family: 0,  // auto-detect IPv4/IPv6
+    retryStrategy(times) {
+        if (times > 10) return null;
+        return Math.min(times * 500, 5000);
+    },
+    reconnectOnError(err) {
+        const targetErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT'];
+        return targetErrors.some(e => err.message.includes(e));
+    },
+    tls: REDIS_URL.startsWith('rediss://') ? {} : undefined,
+}) : null;
+
+if (client) {
+    client.on('error', (err) => {
+        console.error('[Redis] Error:', err.message);
+    });
+    client.on('connect', () => {
+        console.log('[Redis] Connected');
+    });
 }
 
 // Wrapper that auto-parses JSON on get (matching Upstash behaviour used by store.js)
 const redis = {
     async get(key) {
-        const c = await ensureConnected();
-        const raw = await c.get(key);
+        if (!client) throw new Error('Redis not configured');
+        const raw = await client.get(key);
         if (raw === null) return null;
         try {
             return JSON.parse(raw);
@@ -64,28 +48,28 @@ const redis = {
         }
     },
     async set(key, value) {
-        const c = await ensureConnected();
-        return c.set(key, typeof value === 'string' ? value : JSON.stringify(value));
+        if (!client) throw new Error('Redis not configured');
+        return client.set(key, typeof value === 'string' ? value : JSON.stringify(value));
     },
     async sadd(key, ...members) {
-        const c = await ensureConnected();
-        return c.sadd(key, ...members);
+        if (!client) throw new Error('Redis not configured');
+        return client.sadd(key, ...members);
     },
     async smembers(key) {
-        const c = await ensureConnected();
-        return c.smembers(key);
+        if (!client) throw new Error('Redis not configured');
+        return client.smembers(key);
     },
     async exists(key) {
-        const c = await ensureConnected();
-        return c.exists(key);
+        if (!client) throw new Error('Redis not configured');
+        return client.exists(key);
     },
     async incr(key) {
-        const c = await ensureConnected();
-        return c.incr(key);
+        if (!client) throw new Error('Redis not configured');
+        return client.incr(key);
     },
     async del(key) {
-        const c = await ensureConnected();
-        return c.del(key);
+        if (!client) throw new Error('Redis not configured');
+        return client.del(key);
     },
 };
 
