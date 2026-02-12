@@ -9,8 +9,8 @@
     "compile": "npx hardhat compile",
     "test:contracts": "npx hardhat test",
     "deploy:local": "npx hardhat run scripts/deploy.js --network hardhat",
-    "deploy:base-sepolia": "npx hardhat run scripts/deploy.js --network base-sepolia",
-    "deploy:base": "npx hardhat run scripts/deploy.js --network base"
+    "deploy:monad-testnet": "npx hardhat run scripts/deploy.js --network monad-testnet",
+    "deploy:monad": "npx hardhat run scripts/deploy.js --network monad"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.10",

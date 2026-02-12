@@ -14,7 +14,7 @@ export function middleware(request) {
         allowedOrigins.push(process.env.ALLOWED_ORIGIN);
     }
 
-    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.netlify.app');
 
     if (request.method === 'OPTIONS') {
         return new NextResponse(null, {

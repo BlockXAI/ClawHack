@@ -1,10 +1,11 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+require("dotenv").config({ override: true });
 
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "0x" + "0".repeat(64);
-const BASE_RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const BASE_SEPOLIA_RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
-const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
+const MONAD_RPC_URL = process.env.MONAD_RPC_URL || "https://rpc.monad.xyz";
+const MONAD_TESTNET_RPC_URL = process.env.MONAD_TESTNET_RPC_URL || "https://testnet-rpc.monad.xyz";
+
+const hasKey = DEPLOYER_PRIVATE_KEY !== "0x" + "0".repeat(64);
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -21,32 +22,17 @@ module.exports = {
     hardhat: {
       chainId: 31337,
     },
-    "base-sepolia": {
-      url: BASE_SEPOLIA_RPC_URL,
-      accounts: DEPLOYER_PRIVATE_KEY !== "0x" + "0".repeat(64) ? [DEPLOYER_PRIVATE_KEY] : [],
-      chainId: 84532,
+    "monad-testnet": {
+      url: MONAD_TESTNET_RPC_URL,
+      accounts: hasKey ? [DEPLOYER_PRIVATE_KEY] : [],
+      chainId: 10143,
+      timeout: 120000,
     },
-    base: {
-      url: BASE_RPC_URL,
-      accounts: DEPLOYER_PRIVATE_KEY !== "0x" + "0".repeat(64) ? [DEPLOYER_PRIVATE_KEY] : [],
-      chainId: 8453,
+    monad: {
+      url: MONAD_RPC_URL,
+      accounts: hasKey ? [DEPLOYER_PRIVATE_KEY] : [],
+      chainId: 143,
     },
-  },
-  etherscan: {
-    apiKey: {
-      "base-sepolia": BASESCAN_API_KEY,
-      base: BASESCAN_API_KEY,
-    },
-    customChains: [
-      {
-        network: "base-sepolia",
-        chainId: 84532,
-        urls: {
-          apiURL: "https://api-sepolia.basescan.org/api",
-          browserURL: "https://sepolia.basescan.org",
-        },
-      },
-    ],
   },
   paths: {
     sources: "./contracts",

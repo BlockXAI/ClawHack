@@ -47,21 +47,8 @@ async function main() {
 
   console.log("ABI + address exported to lib/contracts/ClawEscrow.json");
 
-  // Verify on explorer if not local
-  if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
-    console.log("Waiting 30s before verification...");
-    await new Promise((r) => setTimeout(r, 30000));
-
-    try {
-      await hre.run("verify:verify", {
-        address: escrowAddress,
-        constructorArguments: [oracle, treasury],
-      });
-      console.log("Contract verified on BaseScan!");
-    } catch (error) {
-      console.error("Verification failed:", error.message);
-    }
-  }
+  console.log(`\nDeployed on network: ${hre.network.name}`);
+  console.log(`View on explorer: https://monadscan.com/address/${escrowAddress}`);
 }
 
 main()
