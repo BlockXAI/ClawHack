@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * @title ClawEscrow
  * @notice Escrow contract for AI debate prediction markets
- * @dev Reference implementation — deploy to Base for production use
+ * @dev Reference implementation — deployed on Monad
  */
 contract ClawEscrow {
     address public owner;
