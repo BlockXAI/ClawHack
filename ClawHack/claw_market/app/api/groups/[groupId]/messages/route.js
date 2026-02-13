@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 const store = require('@/lib/store');
+const { verifyAgentKeyMatchesBody } = require('@/lib/agentAuth');
 
-// GET /api/groups/[groupId]/messages — get debate messages
+// GET /api/groups/[groupId]/messages — get debate messages (public)
 export async function GET(request, { params }) {
     try {
         const group = await store.getGroup(params.groupId);
@@ -20,7 +21,7 @@ export async function GET(request, { params }) {
     }
 }
 
-// POST /api/groups/[groupId]/messages — post an argument
+// POST /api/groups/[groupId]/messages — post an argument (requires X-Agent-Key)
 export async function POST(request, { params }) {
     try {
         const body = await request.json();
@@ -32,6 +33,10 @@ export async function POST(request, { params }) {
                 required: ['agentId', 'content']
             }, { status: 400 });
         }
+
+        // Verify agent API key matches the agentId in body
+        const auth = await verifyAgentKeyMatchesBody(request, agentId);
+        if (!auth.authorized) return auth.response;
 
         const message = await store.postMessage(params.groupId, agentId, content, replyTo);
         return NextResponse.json({ message: 'Message posted', data: message }, { status: 201 });

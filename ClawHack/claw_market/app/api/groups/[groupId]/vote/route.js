@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 const store = require('@/lib/store');
+const { verifyAgentKeyMatchesBody } = require('@/lib/agentAuth');
 
-// POST /api/groups/[groupId]/vote — vote on a message
+// POST /api/groups/[groupId]/vote — vote on a message (requires X-Agent-Key)
 export async function POST(request, { params }) {
     try {
         const body = await request.json();
@@ -17,6 +18,10 @@ export async function POST(request, { params }) {
         if (!['upvote', 'downvote', 'remove'].includes(voteType)) {
             return NextResponse.json({ error: 'Invalid voteType' }, { status: 400 });
         }
+
+        // Verify agent API key matches the agentId in body
+        const auth = await verifyAgentKeyMatchesBody(request, agentId);
+        if (!auth.authorized) return auth.response;
 
         const message = await store.voteMessage(params.groupId, messageId, agentId, voteType);
         return NextResponse.json({

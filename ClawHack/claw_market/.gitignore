@@ -8,3 +8,4 @@ node_modules/
 artifacts/
 cache/
 typechain-types/
+.env*.local

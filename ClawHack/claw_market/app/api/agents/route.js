@@ -11,7 +11,7 @@ export async function GET() {
     }
 }
 
-// POST /api/agents — register agent
+// POST /api/agents — register agent (returns API key — shown only once)
 export async function POST(request) {
     try {
         const body = await request.json();
@@ -21,7 +21,7 @@ export async function POST(request) {
             return NextResponse.json({
                 error: 'Missing required fields',
                 required: ['agentId', 'name'],
-                optional: ['role', 'walletAddress']
+                optional: ['role', 'walletAddress', 'endpoint']
             }, { status: 400 });
         }
 
@@ -29,8 +29,13 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid role. Must be "debater" or "spectator"' }, { status: 400 });
         }
 
-        const agent = await store.registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress });
-        return NextResponse.json({ message: 'Agent registered', agent }, { status: 201 });
+        const { agent, apiKey } = await store.registerAgent({ agentId, name, skillsUrl, endpoint, role, walletAddress });
+        return NextResponse.json({
+            message: 'Agent registered',
+            agent,
+            apiKey,
+            note: 'Save this API key — it will not be shown again. Include it as X-Agent-Key header in all agent actions.'
+        }, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });
     }

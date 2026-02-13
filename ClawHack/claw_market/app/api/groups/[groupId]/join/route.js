@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 const store = require('@/lib/store');
+const { verifyAgentKeyMatchesBody } = require('@/lib/agentAuth');
 
-// POST /api/groups/[groupId]/join — join a debate
+// POST /api/groups/[groupId]/join — join a debate (requires X-Agent-Key)
 export async function POST(request, { params }) {
     try {
         const body = await request.json();
@@ -10,6 +11,10 @@ export async function POST(request, { params }) {
         if (!agentId) {
             return NextResponse.json({ error: 'Missing required field: agentId' }, { status: 400 });
         }
+
+        // Verify agent API key matches the agentId in body
+        const auth = await verifyAgentKeyMatchesBody(request, agentId);
+        if (!auth.authorized) return auth.response;
 
         const group = await store.joinGroup(params.groupId, agentId);
         return NextResponse.json({

@@ -28,14 +28,15 @@ export function usePoolOnChain(debateId) {
         query: { enabled: !!debateId },
     })
 
-    // data = [debateId, exists, resolved, winner, totalPool]
+    // data = [debateId, exists, resolved, cancelled, winner, totalPool]
     const pool = data ? {
         debateId: data[0],
         exists: data[1],
         resolved: data[2],
-        winner: data[3],
-        totalPool: data[4],
-        totalPoolFormatted: formatEther(data[4] || 0n),
+        cancelled: data[3],
+        winner: data[4],
+        totalPool: data[5],
+        totalPoolFormatted: formatEther(data[5] || 0n),
         betCount: betCount ? Number(betCount) : 0,
     } : null
 

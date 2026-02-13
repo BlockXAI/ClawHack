@@ -52,11 +52,18 @@ const GROUP_TOPICS = {
     'policy-arena': 'Should AI development be regulated by governments?',
 };
 
-async function apiCall(path, method = 'GET', body = null) {
-    const opts = {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-    };
+// Store API keys per agent for authenticated calls
+const agentKeys = {};
+
+async function apiCall(path, method = 'GET', body = null, agentId = null) {
+    const headers = { 'Content-Type': 'application/json' };
+
+    // Attach agent API key if we have one for this agent
+    if (agentId && agentKeys[agentId]) {
+        headers['X-Agent-Key'] = agentKeys[agentId];
+    }
+
+    const opts = { method, headers };
     if (body) opts.body = JSON.stringify(body);
 
     const res = await fetch(`${BASE_URL}${path}`, opts);
@@ -110,30 +117,39 @@ async function seedGroup(groupId) {
 
     console.log(`\n📢 Seeding "${groupId}" — Topic: ${topic}`);
 
-    // 1. Register agents
+    // 1. Register agents (capture API keys)
     for (const agent of agents) {
         try {
-            await apiCall('/api/agents', 'POST', {
+            const result = await apiCall('/api/agents', 'POST', {
                 agentId: agent.agentId,
                 name: agent.name,
                 role: 'debater',
             });
-            console.log(`  ✓ Registered agent: ${agent.name}`);
+            if (result.apiKey) {
+                agentKeys[agent.agentId] = result.apiKey;
+            }
+            console.log(`  ✓ Registered agent: ${agent.name} (key: ${result.apiKey ? result.apiKey.slice(0, 12) + '...' : 'n/a'})`);
         } catch (e) {
             if (e.message.includes('already')) {
                 console.log(`  ○ Agent already exists: ${agent.name}`);
+                // Re-derive key deterministically for existing agents
+                const crypto = require('crypto');
+                const secret = process.env.AGENT_KEY_SECRET || 'dev-secret-change-me';
+                const hmac = crypto.createHmac('sha256', secret);
+                hmac.update(agent.agentId);
+                agentKeys[agent.agentId] = 'claw_' + hmac.digest('hex');
             } else {
                 console.error(`  ✗ Register failed: ${e.message}`);
             }
         }
     }
 
-    // 2. Join agents to group
+    // 2. Join agents to group (authenticated)
     for (const agent of agents) {
         try {
             const result = await apiCall(`/api/groups/${groupId}/join`, 'POST', {
                 agentId: agent.agentId,
-            });
+            }, agent.agentId);
             console.log(`  ✓ ${agent.name} joined as ${result.stance || agent.stance}`);
         } catch (e) {
             if (e.message.includes('already') || e.message.includes('2 debaters')) {
@@ -150,26 +166,26 @@ async function seedGroup(groupId) {
     for (let round = 1; round <= 5; round++) {
         console.log(`  💬 Round ${round}/5...`);
 
-        // PRO argues
+        // PRO argues (authenticated)
         try {
             const proArg = await generateArguments(proAgent, topic, round, postedMessages);
             await apiCall(`/api/groups/${groupId}/messages`, 'POST', {
                 agentId: proAgent.agentId,
                 content: proArg,
-            });
+            }, proAgent.agentId);
             postedMessages.push({ agentName: proAgent.name, stance: 'PRO', content: proArg });
             console.log(`    PRO (${proAgent.name}): ${proArg.substring(0, 80)}...`);
         } catch (e) {
             console.error(`    ✗ PRO message failed: ${e.message}`);
         }
 
-        // CON argues
+        // CON argues (authenticated)
         try {
             const conArg = await generateArguments(conAgent, topic, round, postedMessages);
             await apiCall(`/api/groups/${groupId}/messages`, 'POST', {
                 agentId: conAgent.agentId,
                 content: conArg,
-            });
+            }, conAgent.agentId);
             postedMessages.push({ agentName: conAgent.name, stance: 'CON', content: conArg });
             console.log(`    CON (${conAgent.name}): ${conArg.substring(0, 80)}...`);
         } catch (e) {

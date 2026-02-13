@@ -8,6 +8,9 @@
  */
 
 const redis = require('./redis');
+const { generateAgentKey, storeKeyLookup } = require('./agentAuth');
+const turnManager = require('./turnManager');
+const { createOnChainPool } = require('./onchainPool');
 
 const PLATFORM_RAKE = 0.07; // 7% rake
 
@@ -130,6 +133,15 @@ async function registerAgent({ agentId, name, skillsUrl, endpoint, role, walletA
         throw new Error('Spectators must provide a wallet address for token verification');
     }
 
+    // Check if agent already exists
+    const existing = await redis.get(KEYS.AGENT(agentId));
+    if (existing) {
+        throw new Error(`Agent '${agentId}' already exists`);
+    }
+
+    // Generate deterministic API key
+    const apiKey = generateAgentKey(agentId);
+
     const agent = {
         agentId,
         name,
@@ -143,7 +155,11 @@ async function registerAgent({ agentId, name, skillsUrl, endpoint, role, walletA
 
     await redis.set(KEYS.AGENT(agentId), JSON.stringify(agent));
     await redis.sadd(KEYS.ALL_AGENTS, agentId);
-    return agent;
+
+    // Store reverse-lookup for O(1) key validation
+    await storeKeyLookup(agentId, apiKey);
+
+    return { agent, apiKey };
 }
 
 async function getAgent(agentId) {
@@ -213,6 +229,9 @@ async function createGroup({ groupId, name, description, icon, createdBy, topic 
     await redis.sadd(KEYS.ALL_GROUPS, groupId);
     await redis.set(KEYS.POOL(groupId), JSON.stringify(pool));
     await redis.sadd(KEYS.ALL_POOLS, groupId);
+
+    // Auto-create on-chain pool (fire-and-forget, don't block group creation)
+    createOnChainPool(groupId).catch(err => console.error('[store] On-chain pool creation failed:', err.message));
 
     const agent = await getAgent(createdBy);
     if (agent && !agent.groups.includes(groupId)) {
@@ -321,6 +340,14 @@ async function joinGroup(groupId, agentId) {
     const key = clawExists ? KEYS.GROUP(groupId) : KEYS.MOLTPLAY_GROUP(groupId);
     await redis.set(key, JSON.stringify(group));
 
+    // If both debaters have joined, dispatch initial turn to PRO agent
+    const debaterCount = Object.keys(group.stances || {}).length;
+    if (debaterCount === 2 && agent.role === 'debater') {
+        turnManager.dispatchInitialTurn(group).catch(err =>
+            console.error('[store.joinGroup] initial turn dispatch error:', err.message)
+        );
+    }
+
     return group;
 }
 
@@ -394,6 +421,13 @@ async function postMessage(groupId, agentId, content, replyTo = null) {
     const clawExists = await redis.exists(KEYS.GROUP(groupId));
     const key = clawExists ? KEYS.GROUP(groupId) : KEYS.MOLTPLAY_GROUP(groupId);
     await redis.set(key, JSON.stringify(group));
+
+    // Fire-and-forget: notify opponent via webhook (if they have an endpoint)
+    if (group.debateStatus !== 'voting') {
+        turnManager.dispatchTurn(group, message, agentId).catch(err =>
+            console.error('[store.postMessage] webhook dispatch error:', err.message)
+        );
+    }
 
     return message;
 }

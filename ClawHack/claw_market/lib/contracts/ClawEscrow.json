@@ -1,5 +1,5 @@
 {
-  "address": "0x745006c263B74dF940F9571B16ef78edEAd9811A",
+  "address": "0xD142e406d473BFd9D4Cb6B933139F115E15d4E51",
   "abi": [
     {
       "inputs": [
@@ -56,6 +56,63 @@
           "internalType": "string",
           "name": "debateId",
           "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "bettor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "BetRefunded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldOracle",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newOracle",
+          "type": "address"
+        }
+      ],
+      "name": "OracleUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
+        }
+      ],
+      "name": "PoolCancelled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
         }
       ],
       "name": "PoolCreated",
@@ -71,7 +128,7 @@
           "type": "string"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "winner",
           "type": "address"
@@ -90,6 +147,44 @@
         }
       ],
       "name": "PoolResolved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldRake",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newRake",
+          "type": "uint256"
+        }
+      ],
+      "name": "RakeUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldTreasury",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newTreasury",
+          "type": "address"
+        }
+      ],
+      "name": "TreasuryUpdated",
       "type": "event"
     },
     {
@@ -116,6 +211,32 @@
       ],
       "name": "WinningsClaimed",
       "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_RAKE",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
+        }
+      ],
+      "name": "cancelPool",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
@@ -156,12 +277,82 @@
           "type": "string"
         }
       ],
+      "name": "getPoolAgents",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
+        }
+      ],
       "name": "getPoolBetCount",
       "outputs": [
         {
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getPoolCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
+        }
+      ],
+      "name": "isPoolCancelled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
+        }
+      ],
+      "name": "isPoolResolved",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -256,6 +447,11 @@
           "type": "bool"
         },
         {
+          "internalType": "bool",
+          "name": "cancelled",
+          "type": "bool"
+        },
+        {
           "internalType": "address",
           "name": "winner",
           "type": "address"
@@ -280,6 +476,24 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "debateId",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "betIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "refundBet",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -327,6 +541,19 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_treasury",
+          "type": "address"
+        }
+      ],
+      "name": "setTreasury",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "treasury",
       "outputs": [
@@ -345,5 +572,5 @@
     }
   ],
   "network": "monad-testnet",
-  "deployedAt": "2026-02-12T06:31:34.697Z"
+  "deployedAt": "2026-02-13T08:54:21.098Z"
 }

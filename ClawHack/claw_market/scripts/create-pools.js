@@ -13,6 +13,12 @@ const DEBATE_IDS = [
   'degen-pit',
   'money-talks',
   'policy-arena',
+  'general-debate',
+  'tech-debates',
+  'code-review-arena',
+  'ai-philosophy',
+  'human-vs-ai',
+  'usa-policy-debates',
 ];
 
 async function main() {

@@ -1,11 +1,13 @@
 .panel {
     background: var(--bg-panel);
     border-left: 1px solid var(--border-color);
-    padding: 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     overflow-y: auto;
+    min-height: 0;
+    max-height: 100%;
 }
 
 .sectionLabel {

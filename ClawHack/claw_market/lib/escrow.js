@@ -1,11 +1,21 @@
 /**
  * ClawEscrow contract config for wagmi/viem hooks
- * Auto-generated from deployment at 2026-02-12
+ * Auto-generated from deployment at 2026-02-13 (security-hardened v2)
  */
 
-const ESCROW_ADDRESS = '0x745006c263B74dF940F9571B16ef78edEAd9811A';
+const ESCROW_ADDRESS = '0xD142e406d473BFd9D4Cb6B933139F115E15d4E51';
 
 const ESCROW_ABI = [
+  // --- Constructor ---
+  {
+    inputs: [
+      { internalType: 'address', name: '_oracle', type: 'address' },
+      { internalType: 'address', name: '_treasury', type: 'address' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
+  // --- Pool Management ---
   {
     inputs: [{ internalType: 'string', name: 'debateId', type: 'string' }],
     name: 'createPool',
@@ -13,6 +23,14 @@ const ESCROW_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [{ internalType: 'string', name: 'debateId', type: 'string' }],
+    name: 'cancelPool',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // --- Betting ---
   {
     inputs: [
       { internalType: 'string', name: 'debateId', type: 'string' },
@@ -23,6 +41,7 @@ const ESCROW_ABI = [
     stateMutability: 'payable',
     type: 'function',
   },
+  // --- Resolution ---
   {
     inputs: [
       { internalType: 'string', name: 'debateId', type: 'string' },
@@ -43,6 +62,18 @@ const ESCROW_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  // --- Refund ---
+  {
+    inputs: [
+      { internalType: 'string', name: 'debateId', type: 'string' },
+      { internalType: 'uint256', name: 'betIndex', type: 'uint256' },
+    ],
+    name: 'refundBet',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // --- View: pools mapping (returns 6 fields now) ---
   {
     inputs: [{ internalType: 'string', name: '', type: 'string' }],
     name: 'pools',
@@ -50,12 +81,14 @@ const ESCROW_ABI = [
       { internalType: 'string', name: 'debateId', type: 'string' },
       { internalType: 'bool', name: 'exists', type: 'bool' },
       { internalType: 'bool', name: 'resolved', type: 'bool' },
+      { internalType: 'bool', name: 'cancelled', type: 'bool' },
       { internalType: 'address', name: 'winner', type: 'address' },
       { internalType: 'uint256', name: 'totalPool', type: 'uint256' },
     ],
     stateMutability: 'view',
     type: 'function',
   },
+  // --- View: helpers ---
   {
     inputs: [{ internalType: 'string', name: 'debateId', type: 'string' }],
     name: 'getPoolBetCount',
@@ -63,6 +96,42 @@ const ESCROW_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [{ internalType: 'string', name: 'debateId', type: 'string' }],
+    name: 'getPoolAgents',
+    outputs: [{ internalType: 'address[]', name: '', type: 'address[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'string', name: 'debateId', type: 'string' }],
+    name: 'isPoolCancelled',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'string', name: 'debateId', type: 'string' }],
+    name: 'isPoolResolved',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getPoolCount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'poolIds',
+    outputs: [{ internalType: 'string', name: '', type: 'string' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  // --- View: state ---
   {
     inputs: [],
     name: 'owner',
@@ -86,11 +155,19 @@ const ESCROW_ABI = [
   },
   {
     inputs: [],
+    name: 'MAX_RAKE',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'treasury',
     outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
+  // --- Admin ---
   {
     inputs: [{ internalType: 'address', name: '_oracle', type: 'address' }],
     name: 'setOracle',
@@ -106,11 +183,23 @@ const ESCROW_ABI = [
     type: 'function',
   },
   {
+    inputs: [{ internalType: 'address', name: '_treasury', type: 'address' }],
+    name: 'setTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // --- Events ---
+  {
     anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'string', name: 'debateId', type: 'string' },
-    ],
+    inputs: [{ indexed: true, internalType: 'string', name: 'debateId', type: 'string' }],
     name: 'PoolCreated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, internalType: 'string', name: 'debateId', type: 'string' }],
+    name: 'PoolCancelled',
     type: 'event',
   },
   {
@@ -128,7 +217,7 @@ const ESCROW_ABI = [
     anonymous: false,
     inputs: [
       { indexed: true, internalType: 'string', name: 'debateId', type: 'string' },
-      { indexed: false, internalType: 'address', name: 'winner', type: 'address' },
+      { indexed: true, internalType: 'address', name: 'winner', type: 'address' },
       { indexed: false, internalType: 'uint256', name: 'totalPool', type: 'uint256' },
       { indexed: false, internalType: 'uint256', name: 'rake', type: 'uint256' },
     ],
@@ -143,6 +232,43 @@ const ESCROW_ABI = [
       { indexed: false, internalType: 'uint256', name: 'payout', type: 'uint256' },
     ],
     name: 'WinningsClaimed',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: 'string', name: 'debateId', type: 'string' },
+      { indexed: true, internalType: 'address', name: 'bettor', type: 'address' },
+      { indexed: false, internalType: 'uint256', name: 'amount', type: 'uint256' },
+    ],
+    name: 'BetRefunded',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: false, internalType: 'uint256', name: 'oldRake', type: 'uint256' },
+      { indexed: false, internalType: 'uint256', name: 'newRake', type: 'uint256' },
+    ],
+    name: 'RakeUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: false, internalType: 'address', name: 'oldOracle', type: 'address' },
+      { indexed: false, internalType: 'address', name: 'newOracle', type: 'address' },
+    ],
+    name: 'OracleUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: false, internalType: 'address', name: 'oldTreasury', type: 'address' },
+      { indexed: false, internalType: 'address', name: 'newTreasury', type: 'address' },
+    ],
+    name: 'TreasuryUpdated',
     type: 'event',
   },
   { stateMutability: 'payable', type: 'receive' },
