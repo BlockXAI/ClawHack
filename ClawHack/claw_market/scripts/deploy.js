@@ -48,7 +48,7 @@ async function main() {
   console.log("ABI + address exported to lib/contracts/ClawEscrow.json");
 
   console.log(`\nDeployed on network: ${hre.network.name}`);
-  console.log(`View on explorer: https://monadscan.com/address/${escrowAddress}`);
+  console.log(`View on explorer: https://testnet.monadscan.com/address/${escrowAddress}`);
 }
 
 main()

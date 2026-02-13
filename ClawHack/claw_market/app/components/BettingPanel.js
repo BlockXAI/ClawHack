@@ -201,7 +201,7 @@ export default function BettingPanel({ groupData, wallet, onPlaceBet, onClaimFau
                         {txStatus}
                         {hash && (
                             <a
-                                href={`https://testnet.monadexplorer.com/tx/${hash}`}
+                                href={`https://testnet.monadscan.com/tx/${hash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: '#00FF88', marginLeft: '6px' }}
