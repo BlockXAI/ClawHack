@@ -6,7 +6,7 @@ import { useAccount } from 'wagmi'
 import { usePlaceBetOnChain, usePoolOnChain, useMonBalance, useClaimWinnings } from '../hooks/useEscrow'
 import styles from './BettingPanel.module.css'
 
-export default function BettingPanel({ groupData, wallet, onPlaceBet, onClaimFaucet }) {
+export default function BettingPanel({ groupData }) {
     const [selectedAgent, setSelectedAgent] = useState(null)
     const [betAmount, setBetAmount] = useState('')
     const { isConnected, address } = useAccount()
@@ -19,30 +19,21 @@ export default function BettingPanel({ groupData, wallet, onPlaceBet, onClaimFau
 
     const members = groupData?.members || []
     const stances = groupData?.stances || {}
-    const pool = groupData?.pool
 
     const debaters = members.filter(m => m.role === 'debater')
     const proAgent = debaters.find(d => stances[d.agentId] === 'pro')
     const conAgent = debaters.find(d => stances[d.agentId] === 'con')
 
-    // Use on-chain pool data if available, fall back to off-chain
-    const onChainTotal = onChainPool?.exists ? Number(onChainPool.totalPoolFormatted) : 0
-    const offChainTotal = pool?.totalPool || 0
-    const totalPool = onChainTotal > 0 ? onChainTotal : offChainTotal
+    // Pure on-chain pool data
+    const totalPool = onChainPool?.exists ? Number(onChainPool.totalPoolFormatted) : 0
+    const proPercent = 50
+    const conPercent = 50
 
-    const proPool = pool?.agentPots?.[proAgent?.agentId] || 0
-    const conPool = pool?.agentPots?.[conAgent?.agentId] || 0
-    const proPercent = totalPool > 0 ? (proPool / totalPool * 100) : 50
-    const conPercent = totalPool > 0 ? (conPool / totalPool * 100) : 50
-
-    // Calculate potential payout
+    // Calculate potential payout (on-chain: 7% rake)
     const amount = parseFloat(betAmount) || 0
-    const selectedAgentPool = selectedAgent ? (pool?.agentPots?.[selectedAgent] || 0) : 0
-    const potentialPayout = selectedAgent && amount > 0 && totalPool > 0
-        ? ((amount / (selectedAgentPool + amount)) * (totalPool + amount) * 0.93).toFixed(4)
-        : amount > 0
-            ? (amount * 1.86).toFixed(4)
-            : '0.0000'
+    const potentialPayout = amount > 0
+        ? (amount * 1.86).toFixed(4)
+        : '0.0000'
 
     // Handle tx status updates
     useEffect(() => {
@@ -64,16 +55,13 @@ export default function BettingPanel({ groupData, wallet, onPlaceBet, onClaimFau
     const handlePlaceBet = () => {
         if (!selectedAgent || amount <= 0) return
 
-        // Agent addresses for on-chain (use deterministic addresses based on agent stance)
+        // Agent addresses for on-chain (deterministic addresses based on stance)
         const agentAddr = selectedAgent === proAgent?.agentId
             ? '0x0000000000000000000000000000000000000001'
             : '0x0000000000000000000000000000000000000002'
 
         // Place on-chain bet with real MON
         placeBetOnChain(groupData?.groupId, agentAddr, amount)
-
-        // Also place off-chain for UI tracking
-        if (onPlaceBet) onPlaceBet(selectedAgent, amount)
     }
 
     if (!isConnected) {
@@ -116,8 +104,8 @@ export default function BettingPanel({ groupData, wallet, onPlaceBet, onClaimFau
                     <div className={styles.oddsBarFillCon} style={{ width: `${conPercent}%` }}></div>
                 </div>
                 <div className={styles.oddsBarLabels}>
-                    <span>{proPool > 0 ? proPool.toLocaleString() : '0'} MON</span>
-                    <span>{conPool > 0 ? conPool.toLocaleString() : '0'} MON</span>
+                    <span>{totalPool > 0 ? (totalPool / 2).toFixed(4) : '0'} MON</span>
+                    <span>{totalPool > 0 ? (totalPool / 2).toFixed(4) : '0'} MON</span>
                 </div>
             </div>
 

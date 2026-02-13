@@ -222,8 +222,7 @@ async function logWebhook(groupId, agentId, status, detail) {
  */
 async function getWebhookLog(groupId) {
     const key = KEYS.WEBHOOK_LOG(groupId);
-    const entries = await redis.lrange(key, 0, 49);
-    return entries.map(e => typeof e === 'string' ? JSON.parse(e) : e);
+    return redis.lrange(key, 0, 49);
 }
 
 module.exports = {

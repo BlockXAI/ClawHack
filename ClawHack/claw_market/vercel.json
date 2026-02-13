@@ -10,5 +10,11 @@
         { "key": "Cache-Control", "value": "no-store, max-age=0" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/resolve",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

@@ -1,2 +1,24 @@
-# Local Netlify folder
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+artifacts/
+cache/
+typechain-types/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Deployment
+.vercel
 .netlify
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip

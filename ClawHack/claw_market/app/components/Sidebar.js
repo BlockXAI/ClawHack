@@ -2,7 +2,7 @@
 
 import styles from './Sidebar.module.css'
 
-export default function Sidebar({ groups, currentGroupId, onSelectGroup, onToggleLeaderboard }) {
+export default function Sidebar({ groups, currentGroupId, onSelectGroup }) {
     return (
         <div className={styles.sidebar}>
             <div className={styles.logo}>
@@ -33,9 +33,9 @@ export default function Sidebar({ groups, currentGroupId, onSelectGroup, onToggl
                 ))}
             </ul>
 
-            <button className={styles.leaderboardBtn} onClick={onToggleLeaderboard}>
-                🏆 Leaderboard
-            </button>
+            <div style={{ padding: '12px 16px', fontSize: '10px', color: '#666', textAlign: 'center' }}>
+                ⛓ Bets are on-chain via Monad
+            </div>
         </div>
     )
 }

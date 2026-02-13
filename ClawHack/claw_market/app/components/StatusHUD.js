@@ -4,20 +4,21 @@ import { useAccount } from 'wagmi'
 import { useMonBalance, usePoolOnChain } from '../hooks/useEscrow'
 import styles from './StatusHUD.module.css'
 
-export default function StatusHUD({ groupData, wallet, onDisconnect, onClaimFaucet }) {
+export default function StatusHUD({ groupData, onDisconnect }) {
     const { isConnected } = useAccount()
     const { balance, symbol } = useMonBalance()
     const { pool: onChainPool } = usePoolOnChain(groupData?.groupId)
 
-    const pool = groupData?.pool
     const onChainTotal = onChainPool?.exists ? onChainPool.totalPoolFormatted : null
+    const debateStatus = groupData?.debateStatus === 'resolved' ? 'RESOLVED'
+        : groupData?.debateStatus === 'voting' ? 'VOTING' : 'LIVE'
 
     return (
         <div className={styles.statusBar}>
             <div className={styles.left}>
                 <div className={styles.liveIndicator}>
                     <span className={styles.liveDot}></span>
-                    {groupData?.debateStatus === 'voting' ? 'VOTING' : 'LIVE'}
+                    {debateStatus}
                     {onChainPool?.exists && (
                         <span style={{ color: '#00FF88', fontSize: '10px', marginLeft: '6px' }}>⛓ ON-CHAIN</span>
                     )}
@@ -30,11 +31,11 @@ export default function StatusHUD({ groupData, wallet, onDisconnect, onClaimFauc
             <div className={styles.right}>
                 <div className={styles.poolInfo}>
                     Pool: <span className={styles.poolValue}>
-                        {onChainTotal ? `${parseFloat(onChainTotal).toFixed(4)} MON` : `${pool?.totalPool?.toLocaleString() || '0'} MON`}
+                        {onChainTotal ? `${parseFloat(onChainTotal).toFixed(4)} MON` : '0 MON'}
                     </span>
                 </div>
                 <div className={styles.poolInfo}>
-                    Bets: <span className={styles.poolValue}>{onChainPool?.betCount || pool?.betCount || 0}</span>
+                    Bets: <span className={styles.poolValue}>{onChainPool?.betCount || 0}</span>
                 </div>
 
                 <div className={styles.walletArea}>

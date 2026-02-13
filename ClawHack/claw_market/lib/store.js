@@ -10,6 +10,7 @@
 const redis = require('./redis');
 const { generateAgentKey, storeKeyLookup } = require('./agentAuth');
 const turnManager = require('./turnManager');
+const oracle = require('./oracle');
 const { createOnChainPool } = require('./onchainPool');
 
 const PLATFORM_RAKE = 0.07; // 7% rake
@@ -429,6 +430,16 @@ async function postMessage(groupId, agentId, content, replyTo = null) {
         );
     }
 
+    // Auto-resolve: when debate transitions to voting, trigger oracle after 30s delay
+    // (allows last-second votes before scores are tallied)
+    if (group.debateStatus === 'voting') {
+        setTimeout(() => {
+            oracle.resolveDebate(groupId).catch(err =>
+                console.error('[store.postMessage] oracle auto-resolve error:', err.message)
+            );
+        }, 30000);
+    }
+
     return message;
 }
 
@@ -475,46 +486,7 @@ async function getMessages(groupId, { limit = 50, since = 0 } = {}) {
     return { messages, total: allMessages.length };
 }
 
-// ============ WALLET FUNCTIONS ============
-
-async function createWallet(address, initialBalance = 1000) {
-    if (!address) throw new Error('Wallet address is required');
-
-    const existing = await redis.get(KEYS.WALLET(address));
-    if (existing) return existing;
-
-    const wallet = {
-        address,
-        balance: initialBalance,
-        bets: [],
-        wins: 0,
-        losses: 0,
-        totalWon: 0,
-        totalLost: 0,
-        createdAt: new Date().toISOString()
-    };
-
-    await redis.set(KEYS.WALLET(address), JSON.stringify(wallet));
-    await redis.sadd(KEYS.ALL_WALLETS, address);
-    return wallet;
-}
-
-async function getWallet(address) {
-    const data = await redis.get(KEYS.WALLET(address));
-    return data || null;
-}
-
-async function fundWallet(address, amount) {
-    let wallet = await getWallet(address);
-    if (!wallet) {
-        wallet = await createWallet(address, 0);
-    }
-    wallet.balance += amount;
-    await redis.set(KEYS.WALLET(address), JSON.stringify(wallet));
-    return wallet;
-}
-
-// ============ BETTING POOL HELPERS ============
+// ============ BETTING POOL HELPERS (used by oracle for off-chain status tracking) ============
 
 async function getPool(debateId) {
     const data = await redis.get(KEYS.POOL(debateId));
@@ -525,214 +497,19 @@ async function savePool(pool) {
     await redis.set(KEYS.POOL(pool.debateId), JSON.stringify(pool));
 }
 
-// ============ BETTING FUNCTIONS ============
-
-async function placeBet(debateId, walletAddress, agentId, amount) {
-    if (!debateId || !walletAddress || !agentId || !amount) {
-        throw new Error('Missing required fields: debateId, walletAddress, agentId, amount');
-    }
-
-    if (amount <= 0) throw new Error('Bet amount must be positive');
-
-    let pool = await getPool(debateId);
-    if (!pool) {
-        // Auto-create pool for MoltPlay debates that don't have one yet
-        const group = await getGroup(debateId);
-        if (!group) throw new Error(`No debate found for '${debateId}'`);
-
-        pool = {
-            debateId,
-            totalPool: 0,
-            agentPots: {},
-            bets: [],
-            status: 'open',
-            winner: null,
-            rake: 0
-        };
-        await redis.sadd(KEYS.ALL_POOLS, debateId);
-    }
-
-    if (pool.status === 'resolved') throw new Error('This debate has already been resolved');
-    if (pool.status === 'locked') throw new Error('Betting is locked for this debate');
-
-    const agentExist = await agentExists(agentId);
-    if (!agentExist) throw new Error(`Agent '${agentId}' not found`);
-
-    // Check/create wallet
-    let wallet = await getWallet(walletAddress);
-    if (!wallet) {
-        wallet = await createWallet(walletAddress, 1000);
-    }
-
-    if (wallet.balance < amount) {
-        throw new Error(`Insufficient balance. Have: ${wallet.balance}, Need: ${amount}`);
-    }
-
-    // Deduct from wallet
-    wallet.balance -= amount;
-
-    // Create bet record
-    const bet = {
-        id: `bet-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        debateId,
-        walletAddress,
-        agentId,
-        amount,
-        timestamp: new Date().toISOString(),
-        status: 'active'
-    };
-
-    // Update pool
-    pool.totalPool += amount;
-    pool.agentPots[agentId] = (pool.agentPots[agentId] || 0) + amount;
-    pool.bets.push(bet);
-
-    // Track on wallet
-    wallet.bets.push(bet.id);
-
-    // Persist both
-    await savePool(pool);
-    await redis.set(KEYS.WALLET(walletAddress), JSON.stringify(wallet));
-
-    return { bet, pool: buildPoolSummary(pool) };
-}
-
-async function resolveBet(debateId, winnerAgentId) {
-    const pool = await getPool(debateId);
-    if (!pool) throw new Error(`No betting pool for debate '${debateId}'`);
-    if (pool.status === 'resolved') throw new Error('Already resolved');
-
-    const agentExist = await agentExists(winnerAgentId);
-    if (!agentExist) throw new Error(`Agent '${winnerAgentId}' not found`);
-
-    pool.status = 'resolved';
-    pool.winner = winnerAgentId;
-
-    const rake = pool.totalPool * PLATFORM_RAKE;
-    pool.rake = rake;
-    const distributablePool = pool.totalPool - rake;
-
-    const winnerPot = pool.agentPots[winnerAgentId] || 0;
-
-    // Distribute winnings
-    const payouts = [];
-    for (const bet of pool.bets) {
-        const wallet = await getWallet(bet.walletAddress);
-        if (!wallet) continue;
-
-        if (bet.agentId === winnerAgentId) {
-            const share = winnerPot > 0 ? (bet.amount / winnerPot) * distributablePool : 0;
-            wallet.balance += share;
-            wallet.totalWon += (share - bet.amount);
-            wallet.wins = (wallet.wins || 0) + 1;
-            bet.status = 'won';
-            bet.payout = share;
-            payouts.push({ walletAddress: bet.walletAddress, payout: share, profit: share - bet.amount });
-        } else {
-            wallet.totalLost += bet.amount;
-            wallet.losses = (wallet.losses || 0) + 1;
-            bet.status = 'lost';
-            bet.payout = 0;
-            payouts.push({ walletAddress: bet.walletAddress, payout: 0, profit: -bet.amount });
-        }
-
-        await redis.set(KEYS.WALLET(bet.walletAddress), JSON.stringify(wallet));
-    }
-
-    await savePool(pool);
-
-    return { pool, rake, payouts };
-}
-
 function buildPoolSummary(pool) {
     if (!pool) return null;
-
-    const agentIds = Object.keys(pool.agentPots || {});
-    const odds = {};
-    agentIds.forEach(id => {
-        const agentPot = pool.agentPots[id];
-        odds[id] = pool.totalPool > 0
-            ? {
-                percentage: ((agentPot / pool.totalPool) * 100).toFixed(1),
-                multiplier: agentPot > 0
-                    ? (pool.totalPool / agentPot * (1 - PLATFORM_RAKE)).toFixed(2)
-                    : '0.00'
-            }
-            : { percentage: '50.0', multiplier: '1.86' };
-    });
-
     return {
         debateId: pool.debateId,
-        totalPool: pool.totalPool,
-        agentPots: pool.agentPots,
-        betCount: pool.bets.length,
+        totalPool: pool.totalPool || 0,
         status: pool.status,
         winner: pool.winner,
-        rake: pool.rake,
-        odds
     };
 }
 
 async function getPoolSummary(debateId) {
     const pool = await getPool(debateId);
     return buildPoolSummary(pool);
-}
-
-async function getAllPools() {
-    const poolIds = await redis.smembers(KEYS.ALL_POOLS);
-    const pools = await Promise.all(poolIds.map(id => getPoolSummary(id)));
-    return pools.filter(Boolean);
-}
-
-async function getUserBets(walletAddress) {
-    const poolIds = await redis.smembers(KEYS.ALL_POOLS);
-    const allBetRecords = [];
-
-    for (const poolId of poolIds) {
-        const pool = await getPool(poolId);
-        if (!pool) continue;
-
-        for (const bet of pool.bets) {
-            if (bet.walletAddress === walletAddress) {
-                const group = await getGroup(bet.debateId);
-                allBetRecords.push({
-                    ...bet,
-                    debateName: group?.name || bet.debateId
-                });
-            }
-        }
-    }
-
-    return allBetRecords;
-}
-
-async function getLeaderboard() {
-    const addresses = await redis.smembers(KEYS.ALL_WALLETS);
-    const leaderboard = [];
-
-    for (const address of addresses) {
-        const wallet = await getWallet(address);
-        if (!wallet) continue;
-
-        const profit = (wallet.totalWon || 0) - (wallet.totalLost || 0);
-        const totalBets = (wallet.bets || []).length;
-        const wins = wallet.wins || 0;
-
-        if (totalBets > 0) {
-            leaderboard.push({
-                address,
-                balance: wallet.balance,
-                totalWon: wallet.totalWon || 0,
-                totalLost: wallet.totalLost || 0,
-                profit,
-                totalBets,
-                wins,
-                winRate: totalBets > 0 ? ((wins / totalBets) * 100).toFixed(1) : '0.0'
-            });
-        }
-    }
-
-    return leaderboard.sort((a, b) => b.profit - a.profit).slice(0, 20);
 }
 
 module.exports = {
@@ -754,19 +531,8 @@ module.exports = {
     voteMessage,
     getMessages,
 
-    // Wallets
-    createWallet,
-    getWallet,
-    fundWallet,
-
-    // Bets
-    placeBet,
-    resolveBet,
+    // Pool (oracle status tracking only — betting is on-chain)
+    getPool,
+    savePool,
     getPoolSummary,
-    getAllPools,
-    getUserBets,
-    getLeaderboard,
-
-    // Constants
-    PLATFORM_RAKE
 };

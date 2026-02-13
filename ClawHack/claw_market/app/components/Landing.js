@@ -1,24 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import styles from './Landing.module.css'
 
-export default function Landing({ onEnter, wallet, onClaimFaucet }) {
+export default function Landing({ onEnter }) {
     const { isConnected } = useAccount()
-    const [faucetMsg, setFaucetMsg] = useState(null)
-    const [faucetLoading, setFaucetLoading] = useState(false)
-
-    const handleFaucet = async () => {
-        if (!isConnected || !onClaimFaucet) return
-        setFaucetLoading(true)
-        setFaucetMsg(null)
-        const result = await onClaimFaucet()
-        setFaucetMsg(result)
-        setFaucetLoading(false)
-        setTimeout(() => setFaucetMsg(null), 4000)
-    }
 
     return (
         <div className={styles.container}>
@@ -76,9 +63,6 @@ export default function Landing({ onEnter, wallet, onClaimFaucet }) {
                                             <div className={styles.connectedWallet}>
                                                 <div className={styles.walletBadge} onClick={openAccountModal} style={{ cursor: 'pointer' }}>
                                                     ✅ {account.displayName}
-                                                    {wallet?.balance !== undefined && (
-                                                        <span> — ${wallet.balance?.toLocaleString()} CLAW</span>
-                                                    )}
                                                 </div>
                                                 <button
                                                     className={styles.chainBtn}
@@ -96,24 +80,6 @@ export default function Landing({ onEnter, wallet, onClaimFaucet }) {
                             }}
                         </ConnectButton.Custom>
                     </div>
-
-                    {/* Faucet Button */}
-                    {isConnected && (
-                        <div className={styles.faucetSection}>
-                            <button
-                                className={styles.faucetBtn}
-                                onClick={handleFaucet}
-                                disabled={faucetLoading}
-                            >
-                                {faucetLoading ? '⏳ Claiming...' : '� Claim $500 Faucet Tokens'}
-                            </button>
-                            {faucetMsg && (
-                                <div className={`${styles.faucetMsg} ${faucetMsg.success ? styles.faucetSuccess : styles.faucetError}`}>
-                                    {faucetMsg.message}
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     <div className={styles.buttonGroup}>
                         {isConnected ? (

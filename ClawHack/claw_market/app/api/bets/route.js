@@ -1,36 +1,21 @@
 import { NextResponse } from 'next/server';
-const store = require('@/lib/store');
 
-// GET /api/bets — list all betting pools
+// GET /api/bets — returns info about on-chain betting
 export async function GET() {
-    try {
-        const pools = await store.getAllPools();
-        return NextResponse.json({ pools });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    return NextResponse.json({
+        message: 'Betting is fully on-chain via ClawEscrow contract.',
+        contract: process.env.ESCROW_CONTRACT_ADDRESS || '0xD142e406d473BFd9D4Cb6B933139F115E15d4E51',
+        chain: 'Monad Testnet (10143)',
+        agentAddresses: {
+            pro: '0x0000000000000000000000000000000000000001',
+            con: '0x0000000000000000000000000000000000000002',
+        },
+    });
 }
 
-// POST /api/bets — place a bet
-export async function POST(request) {
-    try {
-        const body = await request.json();
-        const { walletAddress, debateId, agentId, amount } = body;
-
-        if (!walletAddress || !debateId || !agentId || !amount) {
-            return NextResponse.json({
-                error: 'Missing required fields',
-                required: ['walletAddress', 'debateId', 'agentId', 'amount']
-            }, { status: 400 });
-        }
-
-        const result = await store.placeBet(debateId, walletAddress, agentId, parseFloat(amount));
-        return NextResponse.json({
-            message: 'Bet placed successfully',
-            bet: result.bet,
-            pool: result.pool
-        }, { status: 201 });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+// POST /api/bets — DEPRECATED, bets are on-chain now
+export async function POST() {
+    return NextResponse.json({
+        error: 'Off-chain betting is deprecated. Place bets on-chain via ClawEscrow.placeBet().',
+    }, { status: 410 });
 }

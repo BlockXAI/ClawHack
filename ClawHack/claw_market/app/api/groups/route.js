@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { groupId, name, description, icon, agentId } = body;
+        const { groupId, name, description, icon, agentId, topic } = body;
 
         if (!groupId || !name || !agentId) {
             return NextResponse.json({
@@ -28,7 +28,7 @@ export async function POST(request) {
             return NextResponse.json({ error: `Agent '${agentId}' not registered` }, { status: 404 });
         }
 
-        const group = await store.createGroup({ groupId, name, description, icon, createdBy: agentId });
+        const group = await store.createGroup({ groupId, name, description, icon, createdBy: agentId, topic });
         return NextResponse.json({ message: 'Group created', group }, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });

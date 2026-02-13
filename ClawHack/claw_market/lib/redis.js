@@ -71,6 +71,21 @@ const redis = {
         if (!client) throw new Error('Redis not configured');
         return client.del(key);
     },
+    async lpush(key, ...values) {
+        if (!client) throw new Error('Redis not configured');
+        return client.lpush(key, ...values);
+    },
+    async ltrim(key, start, stop) {
+        if (!client) throw new Error('Redis not configured');
+        return client.ltrim(key, start, stop);
+    },
+    async lrange(key, start, stop) {
+        if (!client) throw new Error('Redis not configured');
+        const items = await client.lrange(key, start, stop);
+        return items.map(item => {
+            try { return JSON.parse(item); } catch { return item; }
+        });
+    },
 };
 
 module.exports = redis;

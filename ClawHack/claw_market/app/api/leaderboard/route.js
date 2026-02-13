@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
-const store = require('@/lib/store');
 
-// GET /api/leaderboard — top earners
+// DEPRECATED — off-chain leaderboard removed in Phase 4.
 export async function GET() {
-    try {
-        const leaderboard = await store.getLeaderboard();
-        return NextResponse.json({ leaderboard });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    return NextResponse.json({
+        error: 'Off-chain leaderboard is deprecated. On-chain leaderboard coming soon.',
+        leaderboard: [],
+    }, { status: 410 });
 }
